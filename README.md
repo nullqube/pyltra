@@ -1,26 +1,6 @@
-# pyltra
-a simple and smooth static site generator and CMS
-
-## Installation
-
-Install the tool globally using npm:
-```bash
-npm install -g pyltra
-```
-
-### Commands
- pyltra
- pyltra build
- pyltra serve
-
-
- Certainly! Below is the content for your `README.md` file. It includes all the requested sections: a brief introduction, commands, file structure, configuration file details, and Nunjucks template documentation.
-
----
-
 # Pyltra
 
-A Gulp-based build tool for static websites. This tool helps you automate tasks like HTML templating, SCSS compilation, asset optimization, and live browser reloading during development.
+A simple and smooth static site generator and CMS and a Gulp-based build tool for static websites. This tool helps you automate tasks like HTML templating, SCSS compilation, asset optimization, and live browser reloading during development.
 
 ## Installation
 
@@ -38,19 +18,19 @@ The following commands are available:
 
 - **Build the project:**
   ```bash
-  your-tool-name build
+  pyltra build
   ```
   This command cleans the `dist` directory, processes HTML templates, compiles SCSS, optimizes assets, and generates the final output in the `dist` folder.
 
 - **Start the development server:**
   ```bash
-  your-tool-name serve
+  pyltra serve
   ```
   This command builds the project and starts a development server with live reloading. The server serves files from the `dist` directory.
 
 - **Run in production mode:**
   ```bash
-  your-tool-name build --prod
+  pyltra build --prod
   ```
   This command enables production-specific optimizations like minification and sourcemap omission.
 
