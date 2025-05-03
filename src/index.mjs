@@ -32,11 +32,11 @@ import { buildHTML } from './tasks/html.mjs';
 import { compileScss } from './tasks/scss.mjs';
 import { processAssets } from './tasks/assets.mjs';
 import { startServer, watchFiles } from './tasks/serve.mjs';
-
-
-
+import { initProject } from './tasks/init.mjs';
 
 // Tasks
+gulp.task('init', async () => initProject());
+
 gulp.task('clean', () => gulp.src(PATHS.dist, { read: false, allowEmpty: true }).pipe(clean()));
 
 gulp.task('html', async () => buildHTML(languages, isProd));

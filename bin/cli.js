@@ -10,6 +10,14 @@ import gulp from 'gulp';
 import '../src/index.mjs'; // This loads your current Gulpfile
 
 program
+    .command('init')
+    .description('Initialize the project')
+    .action(() => {
+        console.log('Initializing project...');
+        gulp.series('init')();
+    });
+
+program
     .command('build')
     .description('Build the project')
     .action(() => {
