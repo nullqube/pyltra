@@ -19,7 +19,33 @@ export const buildHTML = (languages, isProd) => {
             }))
             .pipe(nunjucksRender({
                 path: ['src/templates'],
-                manageEnv: env => env.addFilter('tojson', obj => JSON.stringify(obj, null, 2))
+                manageEnv: env => {
+                    env.addFilter('markdown', content => {
+                        if (!content) return '';
+                        return marked(content);
+                    });
+                    env.addFilter('date', (date, format) => {
+                        if (!date) return '';
+                        const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+                        return new Date(date).toLocaleDateString('en-US', options);
+                    });
+                    env.addFilter('slugify', str => {
+                        if (!str) return '';
+                        return str.toString().toLowerCase()
+                            .replace(/\s+/g, '-') // Replace spaces with -
+                            .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+                            .replace(/\-\-+/g, '-') // Replace multiple - with single -
+                            .replace(/^-+/, '') // Trim - from start of text
+                            .replace(/-+$/, ''); // Trim - from end of text
+                    });
+                    env.addFilter('truncate', (str, length) => {
+                        if (!str) return '';
+                        if (str.length <= length) return str;
+                        return str.slice(0, length) + '...';
+                    }
+                    );
+                    env.addFilter('tojson', obj => JSON.stringify(obj, null, 2))
+                }
             }))
             .on('error', err => console.error(`Nunjucks error for ${lang}: ${err.message}`))
             .on('error', notify.onError({
