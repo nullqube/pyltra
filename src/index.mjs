@@ -45,7 +45,7 @@ gulp.task('scss', () => compileScss(isProd));
 
 gulp.task('assets', async () => processAssets(isProd));
 
-gulp.task('serve', done => startServer());
+gulp.task('serve', done => startServer(done));
 
 gulp.task('watch', () => watchFiles());
 
