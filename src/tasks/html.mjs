@@ -4,8 +4,9 @@ import nunjucksRender from 'gulp-nunjucks-render';
 import through2 from 'through2';
 import rename from 'gulp-rename';
 import htmlmin from 'gulp-htmlmin';
-import { loadPageData } from '../utils/data.mjs';
+import {marked} from 'marked';
 import notify from 'gulp-notify';
+import { loadPageData } from '../utils/data.mjs';
 import { PATHS, browserSyncInstance, config } from '../utils/config.mjs';
 
 export const buildHTML = (languages, isProd) => {
