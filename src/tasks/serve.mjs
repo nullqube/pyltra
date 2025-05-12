@@ -1,12 +1,16 @@
 import gulp from 'gulp';
-import browserSync from 'browser-sync';
-import { PATHS, browserSyncInstance, isProd } from '../utils/config.mjs';
+// import browserSync from 'browser-sync';
+import { PATHS, browserSyncInstance, languages } from '../utils/config.mjs';
 
-export const startServer = () => {
+export const startServer = (done) => {
+    const defaultLang = languages.length > 0 ? languages[0] : 'en';
+    const defaultPath = `/${defaultLang}/`;
+    console.log(`Serving ${languages} from dist/`);
     browserSyncInstance.init({
         server: { baseDir: PATHS.dist },
         open: true,
-        notify: true
+        notify: true,
+        startPath: defaultPath,
     }, () => console.log('BrowserSync serving from dist/'));
     done();
 };
