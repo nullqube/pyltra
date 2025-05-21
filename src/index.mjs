@@ -1,59 +1,64 @@
-// import gulp from 'gulp';
-// import nunjucksRender from 'gulp-nunjucks-render';
-// import data from 'gulp-data';
-// import { readFileSync } from 'fs';
-// import { join } from 'path';
-import clean from 'gulp-clean';
-// import cleanCSS from 'gulp-clean-css';
-// import uglify from 'gulp-uglify';
-// import sourcemaps from 'gulp-sourcemaps';
-// import htmlmin from 'gulp-htmlmin';
-// import imagemin from 'gulp-imagemin';
-// import mozjpeg from 'imagemin-mozjpeg';
-// import optipng from 'imagemin-optipng';
-// import browserSync from 'browser-sync';
-// import minimist from 'minimist';
-// import yaml from 'js-yaml';
-// import through2 from 'through2';
-// import autoprefixer from 'autoprefixer';
-// import postcss from 'gulp-postcss';
-// // import dartSass from 'sass';
-import gulpSass from 'gulp-sass';
-import size from 'gulp-size';
-import notify from 'gulp-notify';
-// import {marked} from 'marked';
-// import matter from 'gray-matter';
-// import rename from 'gulp-rename';
-
-
 import gulp from 'gulp';
-import { languages, PATHS, isProd } from './utils/config.mjs';
+import { IsProd, Languages, PATHS } from './utils/config.mjs';
 import { buildHTML } from './tasks/html.mjs';
 import { compileScss } from './tasks/scss.mjs';
 import { processAssets } from './tasks/assets.mjs';
 import { startServer, watchFiles } from './tasks/serve.mjs';
 import { initProject } from './tasks/init.mjs';
+import clean from 'gulp-clean';
+import size from 'gulp-size';
 
-// Tasks
-gulp.task('init', async () => initProject());
+// Private Task: Clean the `dist` folder
+function cleanup(cb) {
+    return gulp.src(PATHS.dist, { read: false, allowEmpty: true }).pipe(clean());
+}
 
-gulp.task('clean', () => gulp.src(PATHS.dist, { read: false, allowEmpty: true }).pipe(clean()));
+// Private Task: Generate HTML files
+function generateHTML(cb) {
+    buildHTML(Languages, IsProd);
+    cb();
+}
 
-gulp.task('html', async () => buildHTML(languages, isProd));
+// Private Task: Compile SCSS files
+function compileStyles(cb) {
+    compileScss(IsProd);
+    cb();
+}
 
-gulp.task('scss', () => compileScss(isProd));
+// Private Task: Process assets (images, fonts, etc.)
+function processResources(cb) {
+    processAssets(IsProd);
+    cb();
+}
 
-gulp.task('assets', async () => processAssets(isProd));
+// Public Task: Initialize the project
+export function initialize(cb) {
+    initProject();
+    cb();
+}
 
-gulp.task('serve', done => startServer(done));
+// Public Task: Serve the development server
+export function serve(cb) {
+    startServer(cb);
+}
 
-gulp.task('watch', () => watchFiles());
+// Public Task: Watch files for changes
+export function watch() {
+    watchFiles();
+}
 
-gulp.task('build', gulp.series('clean', gulp.parallel('html', 'assets', 'scss'), () => {
-    return gulp.src(`${PATHS.dist}/**/*`)
-        .pipe(size({
-            showFiles: true,
-            gzip: true
-        }));
-}));
-gulp.task('default', gulp.series('build', 'serve', 'watch'));
+// Public Task: Build the project
+export const build = gulp.series(
+    cleanup,
+    gulp.parallel(generateHTML, compileStyles, processResources),
+    () => {
+        return gulp.src(`${PATHS.dist}/**/*`)
+            .pipe(size({
+                showFiles: true,
+                gzip: true
+            }));
+    }
+);
+
+// Default Task: Run `build`, then `serve`, and `watch`
+export default gulp.series(build, serve, watch);

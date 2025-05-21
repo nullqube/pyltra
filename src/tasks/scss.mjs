@@ -8,7 +8,7 @@ import * as dartSass from 'sass'; // Import all from 'sass' to use dartSass
 const sass = gulpSass(dartSass); // Bind `gulp-sass` to `dart-sass`
 import notify from 'gulp-notify';
 import through2 from 'through2';
-import { PATHS, browserSyncInstance, isProd } from '../utils/config.mjs';
+import { PATHS, browserSyncInstance } from '../utils/config.mjs';
 
 export const compileScss = (isProd) => {
     const plugins = [autoprefixer()];

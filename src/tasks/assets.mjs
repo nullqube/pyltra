@@ -5,10 +5,10 @@ import optipng from 'imagemin-optipng';
 import uglify from 'gulp-uglify';
 import cleanCSS from 'gulp-clean-css';
 import sourcemaps from 'gulp-sourcemaps';
-import { PATHS, browserSyncInstance, isProd } from '../utils/config.mjs';
+import { PATHS, browserSyncInstance } from '../utils/config.mjs';
 
 // Helper for asset processing
-function processAsset(src, dest, plugin) {
+function processAsset(isProd, src, dest, plugin) {
     let stream = gulp.src(src);
     if (!isProd) stream = stream.pipe(sourcemaps.init());
     if (plugin) stream = stream.pipe(plugin());
@@ -18,8 +18,8 @@ function processAsset(src, dest, plugin) {
 
 export const processAssets = (isProd) => {
     const tasks = [
-        processAsset(PATHS.assets.css, `${PATHS.dist}/assets/css`, cleanCSS),
-        processAsset(PATHS.assets.js, `${PATHS.dist}/assets/js`, uglify),
+        processAsset(isProd, PATHS.assets.css, `${PATHS.dist}/assets/css`, cleanCSS),
+        processAsset(isProd, PATHS.assets.js, `${PATHS.dist}/assets/js`, uglify),
         gulp.src(PATHS.assets.img)
             .pipe(imagemin([mozjpeg({ quality: 75, progressive: true }), optipng({ optimizationLevel: 5 })]))
             .pipe(gulp.dest(`${PATHS.dist}/assets/img`)),

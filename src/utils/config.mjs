@@ -27,30 +27,69 @@ export const PATHS = {
     dist: 'dist'
 };
 
-// CLI args
-const args = minimist(process.argv.slice(2));
-export const isProd = args.prod || false;
-console.log(`Running in ${isProd ? 'production' : 'development'} mode`);
-export const config = loadConfig();
-export const languages = config.languages.map(lang => lang.code);
+class ConfigLoader {
+    constructor() {
+        this.config = null;
+        this.isProd = false;
 
-export function loadConfig() {
-    // Load and validate config
-    let config;
-    try {
-        if (fs.existsSync('./config.yaml')) {
-            config = yaml.load(readFileSync('./config.yaml', 'utf8'));
-            if (!config.languages) 
-                throw new Error('Invalid config.yaml: Missing "languages"');
-            if (!config.dataSources) 
-                throw new Error('Invalid config.yaml: Missing "datsSources"');
-        } else {
-            console.log('config.yaml does not exist');
-        }
-    } catch (e) {
-        console.error('Error loading config.yaml:', e.message);
-        process.exit(1);
+        // Parse args and set mode
+        const args = minimist(process.argv.slice(2));
+        this.isProd = args.prod || false;
+        console.log(`Running in ${this.isProd ? 'production' : 'development'} mode`);
     }
 
-    return config;
+    loadConfig() {
+        if (this.config) return this.config;
+
+        try {
+            if (fs.existsSync('./config.yaml')) {
+                const fileContents = readFileSync('./config.yaml', 'utf8');
+                const config = yaml.load(fileContents);
+
+                // Validate required fields
+                if (!config.languages) {
+                    throw new Error('Missing "languages" field in config.yaml');
+                }
+                if (!config.dataSources) {
+                    throw new Error('Missing "dataSources" field in config.yaml');
+                }
+
+                this.config = config;
+                return config;
+            } else {
+                throw new Error('config.yaml does not exist');
+            }
+        } catch (e) {
+            console.error('Error loading config.yaml:', e.message);
+            process.exit(1);
+        }
+    }
+
+    getConfig() {
+        return this.config;
+    }
+
+    getLanguages() {
+        return this.config.languages.map(lang => lang.code);
+    }
+
+    getIsProd() {
+        return this.isProd;
+    }
 }
+
+// Export methods that lazily initialize config
+export const getConfigLoader = (() => {
+    let instance = null;
+    return () => {
+        if (!instance) {
+            instance = new ConfigLoader();
+        }
+        return instance;
+    };
+})();
+
+// Optional: export lazy getters for config values
+export const IsProd = () => getConfigLoader().getIsProd();
+export const Config = () => getConfigLoader().getConfig();
+export const Languages = () => getConfigLoader().getLanguages();

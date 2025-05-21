@@ -3,7 +3,7 @@ import { join } from 'path';
 import yaml from 'js-yaml';
 import matter from 'gray-matter';
 import { marked } from 'marked';
-import { PATHS, config, languages } from './config.mjs';
+import { Config } from './config.mjs';
 
 function loadContent(fileContent, fileType) {
     if (fileType === 'md') {
@@ -21,8 +21,8 @@ function loadContent(fileContent, fileType) {
 // Load collections data 
 function loadCollectionsData(lang, cwd) {
     const res = [];
-    if (config.collections) {
-        for (const [collectionName, { dataFile, items }] of Object.entries(config.collections)) {
+    if (Config().collections) {
+        for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
             const collectionDataFile = dataFile.replace('${lang}', lang);
             const collectionDataFilePath = join(cwd, PATHS.data, collectionDataFile);
 
@@ -65,8 +65,8 @@ function loadCollectionsData(lang, cwd) {
 
 // Load page data (keeps flat structure)
 export function loadPageData(lang, cwd = process.cwd()) {
-    const res = [{ langs: config.languages }]; // Start with languages list
-    const datsSources = config.dataSources;
+    const res = [{ langs: Config().languages }]; // Start with languages list
+    const datsSources = Config().dataSources;
 
     console.log(`Loading data for ${lang}...`);
     for (const [key, { file, fallback }] of Object.entries(datsSources)) {
