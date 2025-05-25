@@ -6,3 +6,7 @@ this version contains changes to 'README.md' so it become comprehensive in docum
 
 # 1.0.2
 Fixed typos in 'README.md'
+
+# 1.1.0
+Add 'init' to make the new project
+Update in using gulp tasks 
