@@ -15,7 +15,7 @@ export const startServer = (done) => {
     done();
 };
 
-export const watchFiles = () => {
+export const watch = () => {
     gulp.watch('src/templates/**/*.html', gulp.series('html'));
     gulp.watch('src/data/**/*.yaml', gulp.series('html'));
     gulp.watch('src/config.yaml', gulp.series('html'));

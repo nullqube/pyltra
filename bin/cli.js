@@ -4,17 +4,19 @@
 import { Command } from 'commander';
 const program = new Command();
 
-import gulp from 'gulp';
+// import gulp from 'gulp';
 
 // Import your existing Gulp tasks
-import '../src/index.mjs'; // This loads your current Gulpfile
+import * as tasks from '../src/index.mjs'; // This loads your current Gulpfile
+import { watch } from 'browser-sync';
 
 program
     .command('init')
     .description('Initialize the project')
     .action(() => {
         console.log('Initializing project...');
-        gulp.series('init')();
+        // gulp.series('init')();
+        tasks.initialize();
     });
 
 program
@@ -22,7 +24,8 @@ program
     .description('Build the project')
     .action(() => {
         console.log('Building project...');
-        gulp.series('build')();
+        // gulp.series('build')();
+        tasks.build();
     });
 
 program
@@ -30,7 +33,7 @@ program
     .description('Start the development server')
     .action(() => {
         console.log('Starting development server...');
-        gulp.series('default')();
+        tasks.watch();
     });
 
 program.parse(process.argv);

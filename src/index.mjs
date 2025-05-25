@@ -3,7 +3,7 @@ import { IsProd, Languages, PATHS } from './utils/config.mjs';
 import { buildHTML } from './tasks/html.mjs';
 import { compileScss } from './tasks/scss.mjs';
 import { processAssets } from './tasks/assets.mjs';
-import { startServer, watchFiles } from './tasks/serve.mjs';
+import { startServer, watch } from './tasks/serve.mjs';
 import { initProject } from './tasks/init.mjs';
 import clean from 'gulp-clean';
 import size from 'gulp-size';
@@ -15,7 +15,7 @@ function cleanup(cb) {
 
 // Private Task: Generate HTML files
 function generateHTML(cb) {
-    buildHTML(Languages, IsProd);
+    buildHTML(Languages(), IsProd());
     cb();
 }
 
@@ -32,20 +32,11 @@ function processResources(cb) {
 }
 
 // Public Task: Initialize the project
-export function initialize(cb) {
-    initProject();
-    cb();
-}
+export const initialize = initProject;
 
 // Public Task: Serve the development server
-export function serve(cb) {
-    startServer(cb);
-}
+export const serve = startServer;
 
-// Public Task: Watch files for changes
-export function watch() {
-    watchFiles();
-}
 
 // Public Task: Build the project
 export const build = gulp.series(
