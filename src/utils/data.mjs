@@ -3,7 +3,7 @@ import { join } from 'path';
 import yaml from 'js-yaml';
 import matter from 'gray-matter';
 import { marked } from 'marked';
-import { Config } from './config.mjs';
+import { Config, PATHS } from './config.mjs';
 
 function loadContent(fileContent, fileType) {
     if (fileType === 'md') {
