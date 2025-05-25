@@ -84,6 +84,7 @@ export const getConfigLoader = (() => {
     return () => {
         if (!instance) {
             instance = new ConfigLoader();
+            instance.loadConfig();
         }
         return instance;
     };
