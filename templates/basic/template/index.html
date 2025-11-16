@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="{{ lang.code }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title | default('Welcome') }}</title>
+    <link rel="stylesheet" href="../assets/css/index.css?1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ page.heading | default('Welcome to ' + site.name) }}</h1>
+            <p class="subtitle">{{ page.tagline | default(site.description) }}</p>
+        </header>
+        
+        <main>
+            <div class="content">
+                {{ page.content | default(site.description) | safe }}
+            </div>
+            
+            {% if page.features %}
+            <div class="features">
+                {% for feature in page.features %}
+                <div class="feature">
+                    <h3>{{ feature.title }}</h3>
+                    <p>{{ feature.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if page.call_to_action %}
+            <div style="text-align: center; margin: 2rem 0;">
+                <a href="{{ page.call_to_action.url }}" class="btn" style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: transform 0.2s;
+                " 
+                onmouseover="this.style.transform='scale(1.05)'" 
+                onmouseout="this.style.transform='scale(1)'">
+                    {{ page.call_to_action.text }}
+                </a>
+            </div>
+            {% endif %}
+        </main>
+        
+        <footer>
+            <p>&copy; {{ 'now' | date('Y') }} {{ site.name }}. {{ page.footer_text | default('All rights reserved.') }}</p>
+        </footer>
+    </div>
+</body>
+</html>

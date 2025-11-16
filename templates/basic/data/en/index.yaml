@@ -1,0 +1,35 @@
+site:
+  name: "My Project"
+  description: "A modern, elegant web project template"
+
+page:
+  title: "Welcome to My Project"
+  heading: "Welcome to My Project"
+  tagline: "Simple, elegant, and powerful"
+  content: |
+    <p>This is a beautifully designed template that combines modern web standards with elegant styling. 
+    Perfect for getting started with your next web project.</p>
+    
+    <p>Features include:</p>
+    <ul>
+      <li>Responsive design that works on all devices</li>
+      <li>Clean, modern typography</li>
+      <li>Beautiful gradient backgrounds</li>
+      <li>Easy to customize and extend</li>
+    </ul>
+
+  features:
+    - title: "Responsive Design"
+      description: "Looks great on desktop, tablet, and mobile devices with fluid layouts and adaptive components."
+    
+    - title: "Modern Styling"
+      description: "Clean aesthetic with subtle animations and professional color schemes that can be easily customized."
+    
+    - title: "Easy to Maintain"
+      description: "Well-structured code with clear separation of concerns and documented components."
+
+  call_to_action:
+    text: "Get Started"
+    url: "/getting-started"
+
+  footer_text: "Built with care and attention to detail."
