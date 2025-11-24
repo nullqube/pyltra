@@ -5,15 +5,19 @@ import prompts from 'prompts';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export const initProject = async () => {
-    // Resolve __dirname in ESM
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
+export const initProject = async (options = {}) => {
+    var {
+        template = 'empty',
+        // skipPrompt = false
+    } = options || {};
 
-    // Path to bundled templates
-    const TEMPLATE_DIR = path.resolve(__dirname, '../../templates');
-
-    console.log('Initializing project...');
+    console.log(options);
+    if( ['empty', 'basic'].includes(template) ) {
+        console.log(`You entered template: "${template}"`)
+    } else {
+        console.log(`Your entered template "${template}" is wrong so set to "empty"`);
+        template = 'empty';
+    }
 
     // Collect user input using prompts
     const response = await prompts([
@@ -28,12 +32,9 @@ export const initProject = async () => {
             name: 'projectDescription',
             message: 'Enter the project description:'
         },
-        {
-            type: 'confirm',
-            name: 'createConfig',
-            message: 'Create default config.yaml?',
-            initial: true
-        },
+        // TODO: project description and more question leads to
+        // AI driven project automate creation
+        // with AI generated text contents, layout, template suggestion, ...
         {
             type: 'confirm',
             name: 'createReadme',
@@ -56,68 +57,27 @@ export const initProject = async () => {
 
     const { projectName, projectDescription, createConfig, createReadme, createGitignore } = response;
 
+    console.log('Initializing project...');
     console.log(`\nCreating project: ${projectName}`);
 
     const projectDir = projectName;
-
+    const projectPath = path.resolve(process.cwd(), projectDir);
     // Create main project directory
     if (!fs.existsSync(projectDir)) {
         fs.mkdirSync(projectDir);
         console.log(`Created project directory: ${projectDir}`);
     }
 
-    // Define directories inside the project folder
-    const defaultDirs = [
-        'src',
-        'src/assets',
-        'src/scss',
-        'src/js',
-        'src/img',
-        'src/fonts',
-        'dist'
-    ];
-
-    defaultDirs.forEach(dir => {
-        const fullPath = path.join(projectDir, dir);
-        if (!fs.existsSync(fullPath)) {
-            fs.mkdirSync(fullPath, { recursive: true });
-            console.log(`Created directory: ${fullPath}`);
-        }
-    });
-
-    // Create config.yaml if user chose to
-    if (createConfig) {
-        const config = {
-            languages: [
-                {
-                    code: 'en',
-                    name: 'English'
-                }
-            ],
-            dataSources: {
-                index: {
-                    file: '${lang}.index.yaml',
-                    fallback: {
-                        title: 'Error',
-                        heading: 'Page Not Found',
-                        content: 'Index data missing.'
-                    }
-                }
-            },
-            bundles: [
-                '404.html',
-                '50x.html'
-            ]
-        };
-
-        const yamlContent = yaml.dump(config);
-        fs.writeFileSync(path.join(projectDir, 'config.yaml'), yamlContent, 'utf8');
-        console.log('Created config.yaml');
-    }
-
+    initWithTemplate(template, projectPath);
+    
+    // Create default folder structure
+    createFoldersStructure(projectDir);
+    createDefaultConfig(projectDir);
+    
     // Create README.md if user chose to
     if (createReadme) {
-        const readmeContent = `# ${projectName}\n\n${projectDescription}\n\n## Getting Started\n\nTo get started, run \`npm install\` to install the necessary dependencies.`;
+        const readmeContent = `# ${projectName}\n\n${projectDescription}\n\n
+         ## Getting Started\n\nTo get started, run \`npm install\` to install the necessary dependencies.`;
         fs.writeFileSync(path.join(projectDir, 'README.md'), readmeContent, 'utf8');
         console.log('Created README.md');
     }
@@ -131,3 +91,77 @@ export const initProject = async () => {
 
     console.log('\n✅ Project initialized successfully!');
 };
+
+/**
+ * Create the default config.yaml .
+ */
+function createDefaultConfig(projectDir) {
+    const config = {
+        languages: [
+            {
+                code: 'en',
+                name: 'English'
+            }
+        ],
+        dataSources: {
+            index: {
+                file: '${lang}.index.yaml',
+                fallback: {
+                    title: 'Error',
+                    heading: 'Page Not Found',
+                    content: 'Index data missing.'
+                }
+            }
+        },
+        bundles: [
+            '404.html',
+            '50x.html'
+        ]
+    };
+
+    const yamlContent = yaml.dump(config);
+    fs.writeFileSync(path.join(projectDir, 'config.yaml'), yamlContent, 'utf8');
+    console.log('Created config.yaml');
+}
+
+/**
+ * Creates the default folder structure for the project.
+ */
+function createFoldersStructure(projectDir) {
+    // Define directories inside the project folder
+    const defaultDirs = [
+        'src',
+        'src/assets',
+        'src/assets/scss',
+        'src/assets/js',
+        'src/assets/img',
+        'src/assets/fonts',
+        'src/data',
+        'src/templates',
+        'dist'
+    ];
+
+    defaultDirs.forEach(dir => {
+        const fullPath = path.join(projectDir, dir);
+        if (!fs.existsSync(fullPath)) {
+            fs.mkdirSync(fullPath, { recursive: true });
+            console.log(`Created directory: ${fullPath}`);
+        }
+    });
+}
+
+function initWithTemplate(template, projectPath) {
+    // template is one of [empty, basic]
+    // Resolve __dirname in ESM
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    // Path to bundled templates
+    const TEMPLATE_DIR = path.resolve(__dirname, '../../templates');
+    const templatePath = path.join(TEMPLATE_DIR, template);
+
+    // Copy template files to project directory
+    fs.cpSync(templatePath, projectPath, { recursive: true });
+    console.log(`Initialized project with "${template}" template.`);
+}
+
