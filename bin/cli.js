@@ -36,8 +36,8 @@ program
     .command('init')
     .option('-t, --template <template>', 'Template to use', 'basic') // Default to 'basic'
     .description('Initialize the project')
-    .action(() => {
-        tasks.initialize();
+    .action((options) => {
+        tasks.initialize(options);
     });
 
 program
