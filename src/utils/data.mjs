@@ -76,7 +76,7 @@ export function loadPageData(lang, cwd = process.cwd()) {
         try {
             const loadedData = yaml.load(readFileSync(filePath, 'utf8'));
             console.log(`Loaded ${fileName}`);
-            res.push(key === 'shared' ? loadedData[lang] || fallback : loadedData);
+            res.push(key === 'shared' ? loadedData[lang] || fallback : { [key]: loadedData });
         } catch (e) {
             console.warn(`Warning: Missing or invalid ${fileName} for ${lang}`);
             res.push({ [key]: fallback });
