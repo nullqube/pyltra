@@ -61,7 +61,7 @@ class ConfigLoader {
             }
         } catch (e) {
             console.error('Error loading config.yaml:', e.message);
-            process.exit(1);
+            throw new Error('Error loading config.yaml:', e.message);
         }
     }
 
