@@ -18,7 +18,7 @@ export const buildHTML = (languages, isProd) => {
         data((file) => {
           const filename = file.basename.replace(".html", "");
           console.log(`Building ${lang}/${filename}`);
-          return { activePage: filename, ...pageData };
+          return { activePage: filename, lang: lang, ...pageData };
         })
       )
       .pipe(
