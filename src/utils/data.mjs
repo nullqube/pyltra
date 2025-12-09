@@ -66,7 +66,7 @@ function loadCollectionsData(lang, cwd) {
 // Load page data (keeps flat structure)
 export function loadPageData(lang, cwd = process.cwd()) {
     const res = [{ langs: Config().languages }]; // Start with languages list
-    const datsSources = Config().dataSources;
+    const datsSources = Config().pages;
 
     console.log(`Loading data for ${lang}...`);
     for (const [key, { file, fallback }] of Object.entries(datsSources)) {

@@ -65,7 +65,7 @@ The tool reads configuration from a `config.yaml` file located in the root of yo
 languages:
   - code: en
   - code: fr
-dataSources:
+pages:
   shared: data/shared.yaml
   pages: data/${lang}.pages.yaml
 collections:
@@ -86,7 +86,7 @@ bundles:
 
 ### Fields in `config.yaml`:
 - **`languages`:** List of supported languages.
-- **`dataSources`:** Paths to shared and language-specific data files.
+- **`pages`:** Paths to shared and language-specific data files.
 - **`collections`:** Define collections (e.g., blog posts) with their data files and item templates.
 - **`bundles`:** Optional list of additional files to copy directly to the `dist` folder.
 

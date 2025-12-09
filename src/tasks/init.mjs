@@ -103,7 +103,7 @@ function createDefaultConfig(projectDir) {
                 name: 'English'
             }
         ],
-        dataSources: {
+        pages: {
             index: {
                 file: '${lang}.index.yaml',
                 fallback: {

@@ -8,7 +8,7 @@ import browserSync from 'browser-sync';
 export const browserSyncInstance = browserSync.create();
 
 // Shared configuration constants
-export const PATHS = {
+const _PATHS = {
     templates: 'src/templates/*.html',
     data: 'src/data',
     assets: {
@@ -26,7 +26,9 @@ export const PATHS = {
     },
     dist: 'dist'
 };
+// config can also alter these paths, so they are the defaults.
 
+export var PATHS = _PATHS;
 class ConfigLoader {
     constructor() {
         this.config = null;
@@ -50,8 +52,8 @@ class ConfigLoader {
                 if (!config.languages) {
                     throw new Error('Missing "languages" field in config.yaml');
                 }
-                if (!config.dataSources) {
-                    throw new Error('Missing "dataSources" field in config.yaml');
+                if (!config.pages) {
+                    throw new Error('Missing "pages" field in config.yaml');
                 }
 
                 this.config = config;
