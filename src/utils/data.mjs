@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import { marked } from 'marked';
 import { Config, PATHS } from './config.mjs';
 
+// Load content from files (MD, JSON, YAML)
 function loadContent(fileContent, fileType) {
     if (fileType === 'md') {
         const {data, content} = matter(fileContent);
@@ -21,69 +22,73 @@ function loadContent(fileContent, fileType) {
 // Load collections data 
 function loadCollectionsData(lang, cwd) {
     const res = [];
-    if (Config().collections) {
-        for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
-            const collectionDataFile = dataFile.replace('${lang}', lang);
-            const collectionDataFilePath = join(cwd, PATHS.data, collectionDataFile);
+    if (!Config().collections)  return res;
 
-            try {
-                const collectionData = yaml.load(readFileSync(collectionDataFilePath, 'utf8'));
+    for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
+        const collectionDataFile = dataFile.replace('${lang}', lang);
+        const collectionDataFilePath = join(cwd, PATHS.data, collectionDataFile);
 
-                const itemsData = items.map(item => {
-                    const itemFileName = item.file.replace('${lang}', lang);
-                    const itemFilePath = join(cwd, PATHS.data, itemFileName);
-                    try {
-                        const itemContent = readFileSync(itemFilePath, 'utf8');
-                        const fileExt = item.file.split('.').pop();
-                        const parsedContent = loadContent(itemContent, fileExt);
+        try {
+            const collectionData = yaml.load(readFileSync(collectionDataFilePath, 'utf8'));
 
-                        return { slug: item.slug, ...parsedContent };
-                    } catch (e) {
-                        console.warn(`Warning: Missing or invalid item file ${itemFileName} for ${lang}`);
-                        console.warn(e.message);
-                    
-                        return { slug: item.slug, ...item.fallback };
-                    }
-                });
+            const itemsData = items.map(item => {
+                const itemFileName = item.file.replace('${lang}', lang);
+                const itemFilePath = join(cwd, PATHS.data, itemFileName);
+                try {
+                    const itemContent = readFileSync(itemFilePath, 'utf8');
+                    const fileExt = item.file.split('.').pop();
+                    const parsedContent = loadContent(itemContent, fileExt);
 
-                // console.log('---------------------------');
-                // console.log(itemsData);
-                // console.log('---------------------------');
+                    return { slug: item.slug, ...parsedContent };
+                } catch (e) {
+                    console.warn(`Warning: Missing or invalid item file ${itemFileName} for ${lang}`);
+                    console.warn(e.message);
+                
+                    return { slug: item.slug, ...item.fallback };
+                }
+            });
 
-                res.push({ [collectionName]: { ...collectionData, items: itemsData } });
-            } catch (e) {
-                console.warn(`Warning: Missing or invalid collection data file ${collectionDataFile} for ${lang}`);
-                console.warn(e.message);
-                // Push an empty collection if the data file is missing or invalid
-                res.push({ [collectionName]: { items: [] } });
-            }
+            // console.log('---------------------------');
+            // console.log(itemsData);
+            // console.log('---------------------------');
+
+            res.push({ [collectionName]: { ...collectionData, items: itemsData } });
+        } catch (e) {
+            console.warn(`Warning: Missing or invalid collection data file ${collectionDataFile} for ${lang}`);
+            console.warn(e.message);
+            // Push an empty collection if the data file is missing or invalid
+            res.push({ [collectionName]: { items: [] } });
         }
     }
 
     return Object.assign({}, ...res);
 }
 
-// Load page data (keeps flat structure)
+// Load page data (keeps none-flat structure)
 export function loadPageData(lang, cwd = process.cwd()) {
     const res = [{ langs: Config().languages }]; // Start with languages list
     const datsSources = Config().pages;
 
     console.log(`Loading data for ${lang}...`);
-    for (const [key, { file, fallback }] of Object.entries(datsSources)) {
+    for (const [key, value] of Object.entries(datsSources)) {
+        const { file = '', fallback = {} } = value ?? {};
         const fileName = file ? file.replace('${lang}', lang) : `${lang}.${key}.yaml`;
         const filePath = join(cwd, PATHS.data, fileName);
 
         try {
             const loadedData = yaml.load(readFileSync(filePath, 'utf8'));
             console.log(`Loaded ${fileName}`);
-            res.push(key === 'shared' ? loadedData[lang] || fallback : loadedData);
+            res.push(key === 'shared' ? loadedData[lang] || fallback : {[key]: loadedData});
         } catch (e) {
             console.warn(`Warning: Missing or invalid ${fileName} for ${lang}`);
             res.push({ [key]: fallback });
         }
     }
-    const collectionRes = loadCollectionsData(lang, cwd);
-    res.push( collectionRes);
+    // Add collections
+    const collections = loadCollectionsData(lang, cwd);
+    if (Object.keys(collections).length > 0) {
+        res.push(collections);
+    }
 
     // console.log( collectionRes.articles );
     return Object.assign({}, ...res); // Flatten into { title, nav, footer, ... }
