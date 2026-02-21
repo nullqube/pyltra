@@ -16,7 +16,8 @@ function processAsset(isProd, src, dest, plugin) {
     return stream.pipe(gulp.dest(dest)).pipe(browserSyncInstance.stream());
 }
 
-export const processAssets = (isProd) => {
+//export const processAssets = (isProd) => {
+export const assetsTask = (isProd) => {
     const tasks = [
         processAsset(isProd, PATHS.assets.css, `${PATHS.dist}/assets/css`, cleanCSS),
         processAsset(isProd, PATHS.assets.js, `${PATHS.dist}/assets/js`, uglify),

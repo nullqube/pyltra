@@ -10,7 +10,7 @@ import notify from 'gulp-notify';
 import through2 from 'through2';
 import { PATHS, browserSyncInstance } from '../utils/config.mjs';
 
-export const compileScss = (isProd) => {
+export const scssTask = (isProd) => {
     const plugins = [autoprefixer()];
 
     return gulp.src(PATHS.assets.scss)

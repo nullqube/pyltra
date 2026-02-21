@@ -1,57 +1,88 @@
 #!/usr/bin/env node
 
-// Use default import for CommonJS modules
 import { Command } from 'commander';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs';
-import * as tasks from '../src/index.mjs'; // This loads your current Gulpfile
+
+import {
+  build,
+  serve,
+  watchTask,
+  initialize
+} from '../src/index.mjs';
+
+import { handleError } from '../src/utils/handleError.mjs';
+
+/* -------------------- */
+/* Setup                */
+/* -------------------- */
 
 const program = new Command();
-
-const INITIALIZE = 0x1;
-const COMMON = 0x2;
-const INITCONFIG = 0x4;
-// then we can have a single main function with config 
-// in binary format to do them as necessary. like in c++
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+program.option('--debug', 'Show full error output');
 
 try {
-    const packageJsonPath = join(__dirname, '..', 'package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
-    // Add version information
-    program
-        .version(packageJson.version, '-v, --version', 'Output the current version')
-        .description('Your app description');
+  const packageJsonPath = join(__dirname, '..', 'package.json');
+  const packageJson = JSON.parse(
+    fs.readFileSync(packageJsonPath, 'utf8')
+  );
+
+  program
+    .name('pyltra')
+    .version(
+      packageJson.version,
+      '-v, --version',
+      'Output the current version'
+    )
+    .description('Your app description');
 } catch (error) {
-    console.error('Error reading package.json:', error.message);
-    process.exit(1);
+  console.error('Error reading package.json:', error.message);
+  process.exit(1);
 }
 
-program
-    .command('init')
-    .option('-t, --template <template>', 'Template to use', 'basic') // Default to 'basic'
-    .description('Initialize the project')
-    .action((options) => {
-        tasks.initialize(options);
-    });
+/* -------------------- */
+/* Commands             */
+/* -------------------- */
 
 program
-    .command('build')
-    .description('Build the project')
-    .action(() => {
-        tasks.build();
-    });
+  .command('init')
+  .option('-t, --template <template>', 'Template to use', 'basic')
+  .description('Initialize the project')
+  .action((options) => {
+    try {
+      initialize(options);
+    } catch (err) {
+      handleError(err, program.opts());
+    }
+  });
 
 program
-    .command('serve')
-    .description('Start the development server')
-    .action(() => {
-        tasks.watch();
-    });
+  .command('build')
+  .description('Build the project')
+  .action(async () => {
+    try {
+      await new Promise((resolve, reject) =>
+        build(err => (err ? reject(err) : resolve()))
+      );
+    } catch (err) {
+      handleError(err, program.opts());
+    }
+  });
+
+program
+  .command('serve')
+  .description('Start dev server and watch files')
+  .action(() => {
+    try {
+      serve();
+      watchTask();
+    } catch (err) {
+      handleError(err, program.opts());
+    }
+  });
 
 program.parse(process.argv);

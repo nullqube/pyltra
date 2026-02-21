@@ -5,7 +5,7 @@ import { htmlTask } from './html.mjs';
 import { assetsTask } from './assets.mjs';
 import { scssTask } from './scss.mjs';
 
-export const startServer = (done) => {
+export const startServer = (done = () => {}) => {
   const langs = Languages();
   const defaultLang = langs.length > 0 ? langs[0] : 'en';
   const defaultPath = `/${defaultLang}/`;
@@ -37,7 +37,7 @@ export const watchFiles = () => {
       PATHS.assets.css,
       PATHS.assets.js,
       PATHS.assets.img,
-      PATHS.assets.other
+      ...PATHS.assets.other
     ],
     assetsTask
   );

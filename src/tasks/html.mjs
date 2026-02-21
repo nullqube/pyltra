@@ -9,7 +9,7 @@ import notify from "gulp-notify";
 import { loadPageData } from "../utils/data.mjs";
 import { PATHS, browserSyncInstance, Config } from "../utils/config.mjs";
 
-export const buildHTML = (languages, isProd) => {
+export const htmlTask = (languages, isProd) => {
   const tasks = languages.map((lang) => {
     const pageData = loadPageData(lang);
     const pagesTasks = gulp
