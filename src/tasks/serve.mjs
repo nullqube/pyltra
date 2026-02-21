@@ -26,19 +26,21 @@ export const startServer = (done = () => {}) => {
 };
 
 export const watchFiles = () => {
-  gulp.watch('src/templates/**/*.html', htmlTask);
-  gulp.watch('src/data/**/*.yaml', htmlTask);
+  gulp.watch(PATHS.templates, htmlTask);
+  gulp.watch(`${PATHS.data}/**/*.yaml`, htmlTask);
   gulp.watch('src/config.yaml', htmlTask);
 
   gulp.watch(PATHS.assets.scss, scssTask);
 
-  gulp.watch(
-    [
-      PATHS.assets.css,
-      PATHS.assets.js,
-      PATHS.assets.img,
-      ...PATHS.assets.other
-    ],
-    assetsTask
-  );
+  // Flatten all asset globs
+  const assetsGlobs = [
+    PATHS.assets.css,
+    PATHS.assets.js,
+    PATHS.assets.img,
+    ...PATHS.assets.other // <-- spread the array
+  ].filter(Boolean); // filter(Boolean) removes undefined, null, and empty strings
+
+  if (assetsGlobs.length > 0) {
+    gulp.watch(assetsGlobs, assetsTask);
+  }
 };
