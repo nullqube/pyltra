@@ -1,0 +1,196 @@
+Alright, here’s **my proposed feature set for Pyltra**, ordered the way I’d actually build it. No fluff, no hype — just a clean, serious tool roadmap.
+
+---
+
+## 🧱 Core (must-have, v1 solid)
+
+These make Pyltra *usable and trustworthy*.
+
+1. **CLI with subcommands**
+
+   * `pyltra init`
+   * `pyltra build`
+   * `pyltra serve`
+   * `pyltra --help`, `--version`
+
+2. **Environment modes**
+
+   * `--dev` / `--prod`
+   * Single source of truth (`IsProd()`)
+   * Auto‐set `NODE_ENV`
+
+3. **Clean error handling**
+
+   * Friendly messages by default
+   * `--debug` for full stack traces
+   * Proper exit codes
+
+4. **Config-driven build**
+
+   * `config.yaml`
+   * Languages, paths, assets, output
+   * Sensible defaults
+
+5. **Multi-language output**
+
+   * `/en`, `/fa`, `/fr`, …
+   * Language-aware build & serve
+   * Default language routing
+
+6. **HTML generation**
+
+   * Template system
+   * Data injection (YAML/JSON)
+   * Per-language rendering
+
+7. **Asset pipeline**
+
+   * SCSS → CSS
+   * JS copy/bundle
+   * Images + static assets
+   * Clean dist folder
+
+---
+
+## 🔁 Developer Experience (v1.1)
+
+These turn it from “works” into “nice to use”.
+
+8. **Live dev server**
+
+   * BrowserSync
+   * Auto reload on change
+   * Language-aware start path
+
+9. **File watcher**
+
+   * Incremental rebuilds
+   * No full rebuild on every change
+   * Robust glob handling
+
+10. **Verbose logging (opt-in)**
+
+    * `--debug`
+    * `--verbose`
+    * Clear task timing
+
+11. **Deterministic builds**
+
+    * Same input → same output
+    * No hidden globals
+    * Reproducible CI builds
+
+---
+
+## 🧪 Diagnostics & Safety (v1.2)
+
+These prevent footguns.
+
+12. **`pyltra doctor`**
+
+    * Validate config
+    * Check paths exist
+    * Detect port conflicts
+    * Print actionable fixes
+
+13. **Config schema validation**
+
+    * Fail early
+    * Clear messages
+    * No silent defaults
+
+14. **Safe defaults**
+
+    * Dev ≠ Prod
+    * Warnings for risky config
+    * No magic behavior
+
+---
+
+## ⚙️ Architecture Upgrades (v2)
+
+Only after v1 is stable.
+
+15. **Task abstraction (no Gulp dependency)**
+
+    * Internal task runner
+    * Same CLI API
+    * Optional Gulp adapter
+
+16. **Plugin system**
+
+    * `pyltra.config.js`
+    * Hook-based lifecycle
+    * Community extensions
+
+17. **Partial builds**
+
+    * Build single language
+    * Build single page
+    * Build only assets
+
+---
+
+## 📦 Distribution & Ecosystem
+
+Last step, but important.
+
+18. **Global npm CLI**
+
+    * `npm i -g pyltra`
+    * Proper bin entry
+    * Cross-platform
+
+19. **Project templates**
+
+    * `pyltra init blog`
+    * `pyltra init docs`
+    * `pyltra init landing`
+
+20. **CI-friendly mode**
+
+    * `--ci`
+    * Silent output
+    * Machine-readable errors
+
+---
+
+## 🔮 Optional (nice-to-have)
+
+Only if you *want* them.
+
+21. **Static export optimizations**
+
+    * Minify HTML/CSS/JS
+    * Hash assets
+    * Cache busting
+
+22. **i18n helpers**
+
+    * Missing translation detection
+    * Fallback language warnings
+
+23. **Watch UI (future)**
+
+    * Terminal dashboard
+    * File change indicators
+
+---
+
+## My honest take
+
+If you stop after **feature 10**, you already have a **respectable, professional static site tool**.
+
+If you reach **feature 15**, you’ve built something *architecturally clean*.
+
+Everything after that is optional polish.
+
+---
+
+If you want, next we can:
+
+* cut this into a **v1 milestone checklist**
+* or write a **`pyltra doctor` spec**
+* or decide **where to draw the “stop line”**
+
+Tell me how ambitious you want this to be.
