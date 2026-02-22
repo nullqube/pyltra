@@ -7,6 +7,7 @@ import cleanCSS from 'gulp-clean-css';
 import sourcemaps from 'gulp-sourcemaps';
 import through2 from 'through2';
 import { PATHS, browserSyncInstance } from '../utils/config.mjs';
+import merge from 'merge-stream';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -80,5 +81,5 @@ export const assetsTask = (isProd) => {
         .pipe(gulp.dest(`${paths.dist}/assets`))
         .pipe(browserSyncInstance.stream());
 
-    return Promise.all([cssTask, jsTask, imgTask, otherTask]);
+    return merge(cssTask, jsTask, imgTask, otherTask);
 };
