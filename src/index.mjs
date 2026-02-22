@@ -32,7 +32,7 @@ function processResources() {
 function reportSize() {
     return gulp
         .src(`${PATHS().dist}/**/*`)
-        .pipe(size({ showFiles: true, gzip: true }));
+        .pipe(size({ showFiles: true, gzip: true, title: 'Build output' }));
 }
 
 /* -------------------- */
