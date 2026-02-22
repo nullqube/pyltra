@@ -1,10 +1,9 @@
 import { readFileSync } from 'fs';
 import yaml from 'js-yaml';
 import fs from 'fs';
-import minimist from 'minimist';
+import browserSync from 'browser-sync';
 
 // BrowserSync instance
-import browserSync from 'browser-sync';
 export const browserSyncInstance = browserSync.create();
 
 // Shared configuration constants
@@ -13,9 +12,9 @@ const _PATHS = {
     data: 'src/data',
     assets: {
         scss: 'src/assets/scss/**/*.scss',
-        css: 'src/assets/css/**/*.css',
-        js: 'src/assets/js/**/*.js',
-        img: 'src/assets/img/**/*',
+        css:  'src/assets/css/**/*.css',
+        js:   'src/assets/js/**/*.js',
+        img:  'src/assets/img/**/*',
         other: [
             'src/assets/**/*',
             '!src/assets/scss/**',
@@ -26,44 +25,43 @@ const _PATHS = {
     },
     dist: 'dist'
 };
-// config can also alter these paths, so they are the defaults.
 
-export var PATHS = _PATHS;
+export const PATHS = _PATHS;
+
 class ConfigLoader {
     constructor() {
         this.config = null;
-        this.isProd = false;
+        // isProd is now set explicitly via setIsProd() rather than read from argv
+        // at module load time, which races with Commander's arg parsing in cli.mjs
+        this._isProd = false;
+    }
 
-        // Parse args and set mode
-        const args = minimist(process.argv.slice(2));
-        this.isProd = args.prod || false;
-        console.log(`Running in ${this.isProd ? 'production' : 'development'} mode`);
+    setIsProd(value) {
+        this._isProd = !!value;
+        console.log(`Running in ${this._isProd ? 'production' : 'development'} mode`);
     }
 
     loadConfig() {
         if (this.config) return this.config;
-
         try {
-            if (fs.existsSync('./config.yaml')) {
-                const fileContents = readFileSync('./config.yaml', 'utf8');
-                const config = yaml.load(fileContents);
-
-                // Validate required fields
-                if (!config.languages) {
-                    throw new Error('Missing "languages" field in config.yaml');
-                }
-                if (!config.pages) {
-                    throw new Error('Missing "pages" field in config.yaml');
-                }
-
-                this.config = config;
-                return config;
-            } else {
+            if (!fs.existsSync('./config.yaml')) {
                 throw new Error('config.yaml does not exist');
             }
+            const fileContents = readFileSync('./config.yaml', 'utf8');
+            const config = yaml.load(fileContents);
+
+            if (!config.languages) {
+                throw new Error('Missing "languages" field in config.yaml');
+            }
+            if (!config.pages) {
+                throw new Error('Missing "pages" field in config.yaml');
+            }
+
+            this.config = config;
+            return config;
         } catch (e) {
             console.error('Error loading config.yaml:', e.message);
-            throw new Error('Error loading config.yaml:', e.message);
+            throw new Error(`Error loading config.yaml: ${e.message}`);
         }
     }
 
@@ -76,23 +74,28 @@ class ConfigLoader {
     }
 
     getIsProd() {
-        return this.isProd;
+        return this._isProd;
     }
 }
 
-// Export methods that lazily initialize config
+// Singleton
 export const getConfigLoader = (() => {
     let instance = null;
     return () => {
         if (!instance) {
             instance = new ConfigLoader();
-            instance.loadConfig();
         }
         return instance;
     };
 })();
 
-// Optional: export lazy getters for config values
-export const IsProd = () => getConfigLoader().getIsProd();
-export const Config = () => getConfigLoader().getConfig();
+// Call this once from cli.mjs after Commander has parsed args,
+// before build/serve are invoked
+export const setIsProd = (value) => getConfigLoader().setIsProd(value);
+
+// Lazy config loader — will throw if config.yaml is missing (expected during `init`)
+export const loadConfig = () => getConfigLoader().loadConfig();
+
+export const IsProd    = () => getConfigLoader().getIsProd();
+export const Config    = () => getConfigLoader().getConfig();
 export const Languages = () => getConfigLoader().getLanguages();
