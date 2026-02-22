@@ -11,7 +11,7 @@ import { handleError } from '../src/utils/handleError.mjs';
 /* -------------------- */
 const program = new Command();
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname  = dirname(__filename);
 
 program
     .option('--debug', 'Show full error output')
@@ -19,8 +19,9 @@ program
     .option('--dev',   'Run in development mode (default)');
 
 try {
-    const packageJsonPath = join(__dirname, '..', 'package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const packageJson = JSON.parse(
+        fs.readFileSync(join(__dirname, '..', 'package.json'), 'utf8')
+    );
     program
         .name('pyltra')
         .version(packageJson.version, '-v, --version', 'Output the current version')
@@ -31,15 +32,24 @@ try {
 }
 
 /* -------------------- */
+/* Graceful shutdown    */
+/* -------------------- */
+process.on('SIGINT', () => {
+    console.log('\nShutting down...');
+    process.exit(0);
+});
+
+/* -------------------- */
 /* Commands             */
 /* -------------------- */
 program
     .command('init')
     .option('-t, --template <template>', 'Template to use', 'basic')
-    .description('Initialize the project')
+    .description('Initialize a new project')
     .action(async (options) => {
         try {
-            // Do NOT load config here — config.yaml doesn't exist yet
+            // Dynamically import so config.mjs module-level code doesn't
+            // attempt to load config.yaml before it exists
             const { initialize } = await import('../src/index.mjs');
             await initialize(options);
         } catch (err) {
@@ -55,6 +65,7 @@ program
             setIsProd(program.opts().prod);
             loadConfig();
             const { build } = await import('../src/index.mjs');
+            // Gulp 4 series/parallel returns a function that accepts a callback
             await new Promise((resolve, reject) =>
                 build(err => (err ? reject(err) : resolve()))
             );
