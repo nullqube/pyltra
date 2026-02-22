@@ -61,7 +61,13 @@ export const watchFiles = () => {
         paths.assets.js,
         paths.assets.img,
         ...paths.assets.other
-    ].filter(Boolean);
+    ].filter(Boolean); // Remove any falsy values (undefined, null, empty string)
+    // (Boolean is the constructor function of the class, so it converts everything
+    //  to boolean then null become false and filter remove it)
+    // This is a common JavaScript technique to remove any falsy values from an array. 
+    // In this context, it ensures that if any of the asset paths (css, js, img, other) are undefined, null, or empty strings,
+    // they will be filtered out before we attempt to set up a watcher on them. 
+    // This prevents errors that would occur if gulp.watch is given invalid paths.
 
     if (assetsGlobs.length > 0) {
         gulp.watch(assetsGlobs, () => assetsTask(IsProd()));
