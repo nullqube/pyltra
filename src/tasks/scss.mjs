@@ -4,25 +4,28 @@ import autoprefixer from 'autoprefixer';
 import postcss from 'gulp-postcss';
 import cleanCSS from 'gulp-clean-css';
 import sourcemaps from 'gulp-sourcemaps';
-import * as dartSass from 'sass'; // Import all from 'sass' to use dartSass
-const sass = gulpSass(dartSass); // Bind `gulp-sass` to `dart-sass`
-import notify from 'gulp-notify';
 import through2 from 'through2';
+import notify from 'gulp-notify';
+import * as dartSass from 'sass';
 import { PATHS, browserSyncInstance } from '../utils/config.mjs';
 
-export const scssTask = (isProd) => {
-    const plugins = [autoprefixer()];
+const sass = gulpSass(dartSass);
 
-    return gulp.src(PATHS.assets.scss)
-        .pipe(sourcemaps.init())
+export const scssTask = (isProd) => {
+    const paths   = PATHS();
+    const mapsDir = `${paths.dist}/maps`; // derived from config, not hardcoded
+
+    return gulp
+        .src(paths.assets.scss)
+        .pipe(isProd ? through2.obj() : sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
         .on('error', notify.onError({
             title: 'SCSS Compilation Error',
             message: '<%= error.message %>'
         }))
-        .pipe(postcss(plugins))
+        .pipe(postcss([autoprefixer()]))
         .pipe(isProd ? cleanCSS() : through2.obj())
-        .pipe(!isProd ? sourcemaps.write('../maps') : through2.obj())
-        .pipe(gulp.dest(`${PATHS.dist}/assets/css`))
+        .pipe(isProd ? through2.obj() : sourcemaps.write(mapsDir))
+        .pipe(gulp.dest(`${paths.dist}/assets/css`))
         .pipe(browserSyncInstance.stream());
-}
+};
