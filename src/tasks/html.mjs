@@ -71,12 +71,15 @@ const htmlminOptions = {
 
 export const htmlTask = (languages, isProd) => {
     const paths = PATHS();
+    const streams = [];
 
-    const tasks = languages.map((lang) => {
+    for (const lang of languages) {
         const pageData = loadPageData(lang);
 
+        // --------------------
         // Main pages
-        const pagesTasks = gulp
+        // --------------------
+        const pagesStream = gulp
             .src(paths.templates)
             .pipe(
                 data((file) => {
@@ -88,10 +91,9 @@ export const htmlTask = (languages, isProd) => {
             .pipe(
                 nunjucksRender({
                     path: [`${paths.src}/templates`],
-                    manageEnv: setupNunjucksEnv   // reuse shared setup
+                    manageEnv: setupNunjucksEnv
                 })
             )
-            .on('error', (err) => console.error(`Nunjucks error for ${lang}: ${err.message}`))
             .on('error', notify.onError({
                 title: 'HTML Compilation Error',
                 message: '<%= error.message %>'
@@ -100,56 +102,60 @@ export const htmlTask = (languages, isProd) => {
             .pipe(gulp.dest(`${paths.dist}/${lang}`))
             .pipe(browserSyncInstance.stream());
 
+        streams.push(pagesStream);
+
+        // --------------------
         // Collection item pages
-        const collectionTasks = Object.entries(Config().collections).flatMap(
-            ([collectionName, { item_template, items }]) => {
-                const collectionData = pageData[collectionName];
+        // --------------------
+        for (const [collectionName, { item_template, items }] of Object.entries(Config().collections)) {
+            const collectionData = pageData[collectionName];
 
-                return items.map((item) => {
-                    const itemData = collectionData?.items?.find(i => i.slug === item.slug);
+            for (const item of items) {
+                const itemData = collectionData?.items?.find(i => i.slug === item.slug);
 
-                    return gulp
-                        .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
-                        .pipe(
-                            data(() => ({
-                                ...pageData,
-                                lang,
-                                article: itemData,
-                                collection: collectionName
-                            }))
-                        )
-                        .pipe(
-                            nunjucksRender({
-                                path: [`${paths.src}/templates`],
-                                manageEnv: setupNunjucksEnv   // same filters, no duplication
-                            })
-                        )
-                        .on('error', (err) =>
-                            console.error(`Nunjucks error for ${lang}/${collectionName}/${item.slug}: ${err.message}`)
-                        )
-                        .on('error', notify.onError({
-                            title: 'HTML Compilation Error',
-                            message: '<%= error.message %>'
+                const itemStream = gulp
+                    .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
+                    .pipe(
+                        data(() => ({
+                            ...pageData,
+                            lang,
+                            article: itemData,
+                            collection: collectionName
                         }))
-                        .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
-                        .pipe(rename({ basename: item.slug }))
-                        .pipe(gulp.dest(`${paths.dist}/${lang}/${collectionName}`))
-                        .pipe(browserSyncInstance.stream());
-                });
+                    )
+                    .pipe(
+                        nunjucksRender({
+                            path: [`${paths.src}/templates`],
+                            manageEnv: setupNunjucksEnv
+                        })
+                    )
+                    .on('error', notify.onError({
+                        title: 'HTML Compilation Error',
+                        message: '<%= error.message %>'
+                    }))
+                    .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+                    .pipe(rename({ basename: item.slug }))
+                    .pipe(gulp.dest(`${paths.dist}/${lang}/${collectionName}`))
+                    .pipe(browserSyncInstance.stream());
+
+                streams.push(itemStream);
             }
+        }
+    }
+
+    // --------------------
+    // Bundle files (404.html, etc.)
+    // --------------------
+    for (const fileName of Config().bundles) {
+        streams.push(
+            gulp
+                .src(`${paths.src}/${fileName}`)
+                .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+                .pipe(gulp.dest(paths.dist))
+                .pipe(browserSyncInstance.stream())
         );
+    }
 
-        return [pagesTasks, ...collectionTasks];
-    });
-
-    // Bundle files (404.html, 50x.html, etc.)
-    const bundleTasks = Config().bundles.map((fileName) =>
-        gulp
-            .src(`${paths.src}/${fileName}`)
-            .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
-            .pipe(gulp.dest(paths.dist))
-            .pipe(browserSyncInstance.stream())
-    );
-
-    return merge(...tasks.flat(), ...bundleTasks);
+    // 🔑 ONE stream returned
+    return merge(...streams);
 };
