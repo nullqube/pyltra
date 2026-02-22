@@ -6,11 +6,31 @@ import { marked } from 'marked';
 import { Config, PATHS } from './config.mjs';
 
 // ---------------------------------------------------------------------------
+// Cache — keyed by lang, invalidated explicitly on watch rebuilds
+// ---------------------------------------------------------------------------
+
+/** @type {Map<string, Object>} */
+const pageDataCache = new Map();
+
+/**
+ * Clears cached data for a specific language, or all languages if omitted.
+ * Call this from watch handlers before triggering htmlTask so stale data
+ * isn't served.
+ * @param {string} [lang]
+ */
+export function invalidateCache(lang) {
+    if (lang) {
+        pageDataCache.delete(lang);
+    } else {
+        pageDataCache.clear();
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Content loaders
 // ---------------------------------------------------------------------------
 
 /**
- * Parses file content based on file type.
  * @param {string} fileContent
  * @param {'md'|'json'|'yaml'} fileType
  * @returns {Object}
@@ -30,7 +50,6 @@ function loadContent(fileContent, fileType) {
 // ---------------------------------------------------------------------------
 
 /**
- * Loads all collection data for a given language.
  * @param {string} lang
  * @param {string} cwd
  * @returns {Object}
@@ -39,7 +58,6 @@ function loadCollectionsData(lang, cwd) {
     const dataDir = PATHS().data;
     const result  = [];
 
-    // collections is always an object thanks to config defaults — no || {} needed
     for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
         const collectionFileName = dataFile.replace('${lang}', lang);
         const collectionFilePath = join(cwd, dataDir, collectionFileName);
@@ -79,20 +97,25 @@ function loadCollectionsData(lang, cwd) {
 
 /**
  * Loads and merges all page data for a given language.
+ * Results are cached — call invalidateCache(lang) before rebuilding on watch.
  * @param {string} lang
  * @param {string} [cwd]
  * @returns {Object}
  */
 export function loadPageData(lang, cwd = process.cwd()) {
+    if (pageDataCache.has(lang)) {
+        console.log(`Using cached data for "${lang}"`);
+        return pageDataCache.get(lang);
+    }
+
     const dataDir = PATHS().data;
     const result  = [{ langs: Config().languages }];
 
     console.log(`Loading data for "${lang}"...`);
 
-    // pages is always an object thanks to config defaults — no || {} needed
     for (const [key, value] of Object.entries(Config().pages)) {
         const { file = '', fallback = {} } = value ?? {};
-        const fileName = file ? file.replace('${lang}', lang) : `${lang}.${key}.yaml`;
+        const fileName = file ? file.replace('${lang}', lang) : `${lang}/${key}.yaml`;
         const filePath = join(cwd, dataDir, fileName);
 
         try {
@@ -106,11 +129,12 @@ export function loadPageData(lang, cwd = process.cwd()) {
         }
     }
 
-    // Add collections — always an object, safe to spread
     const collections = loadCollectionsData(lang, cwd);
     if (Object.keys(collections).length > 0) {
         result.push(collections);
     }
 
-    return Object.assign({}, ...result);
+    const pageData = Object.assign({}, ...result);
+    pageDataCache.set(lang, pageData);
+    return pageData;
 }
