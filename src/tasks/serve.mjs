@@ -1,8 +1,9 @@
 import gulp from 'gulp';
-import { PATHS, browserSyncInstance, Languages } from '../utils/config.mjs';
+import { PATHS, browserSyncInstance, Languages, IsProd } from '../utils/config.mjs';
 import { htmlTask } from './html.mjs';
 import { assetsTask } from './assets.mjs';
 import { scssTask } from './scss.mjs';
+import { invalidateCache } from '../utils/data.mjs';
 
 export const startServer = (done = () => {}) => {
     const langs = Languages();
@@ -27,10 +28,32 @@ export const startServer = (done = () => {}) => {
 export const watchFiles = () => {
     const paths = PATHS(); // resolve once for this call
 
-    gulp.watch(paths.templates,          htmlTask);
-    gulp.watch(`${paths.data}/**/*.yaml`, htmlTask);
-    gulp.watch(`${paths.src}/config.yaml`, htmlTask);
-    gulp.watch(paths.assets.scss,         scssTask);
+    gulp.watch(`${paths.data}/**/*.yaml`, (done) => {
+        invalidateCache(); // clear all, or pass a specific lang
+        htmlTask(Languages(), IsProd());
+        done();
+    });
+
+    //If htmlTask throws (bad YAML, bad template), watcher can die silently.
+    //fix: Wrap in try/catch inside watch callback:
+    gulp.watch(paths.templates, async (done) => {
+        try {
+            await htmlTask(Languages(), IsProd());
+        } catch (e) {
+            console.error(e);
+        }
+        done();
+    });
+    gulp.watch(`${paths.src}/config.yaml`, async (done) => {
+        try {
+            await htmlTask(Languages(), IsProd());
+        } catch (e) {
+            console.error(e);
+        }
+        done();
+    });
+
+    gulp.watch(paths.assets.scss,          () => scssTask(IsProd()));
 
     // Flatten all asset globs, filter out any undefined/empty values
     const assetsGlobs = [
@@ -41,6 +64,6 @@ export const watchFiles = () => {
     ].filter(Boolean);
 
     if (assetsGlobs.length > 0) {
-        gulp.watch(assetsGlobs, assetsTask);
+        gulp.watch(assetsGlobs, () => assetsTask(IsProd()));
     }
 };
