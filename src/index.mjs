@@ -13,7 +13,7 @@ import { initProject } from './tasks/init.mjs';
 /* -------------------- */
 function cleanup() {
     return gulp
-        .src(PATHS.dist, { read: false, allowEmpty: true })
+        .src(PATHS().dist, { read: false, allowEmpty: true })
         .pipe(clean());
 }
 
@@ -29,6 +29,12 @@ function processResources() {
     return assetsTask(IsProd());
 }
 
+function reportSize() {
+    return gulp
+        .src(`${PATHS().dist}/**/*`)
+        .pipe(size({ showFiles: true, gzip: true }));
+}
+
 /* -------------------- */
 /* Public Tasks         */
 /* -------------------- */
@@ -39,13 +45,10 @@ export const build = gulp.series(
         compileStyles,
         processResources
     ),
-    () =>
-        gulp
-            .src(`${PATHS.dist}/**/*`)
-            .pipe(size({ showFiles: true, gzip: true }))
+    reportSize
 );
 
-export const serve = startServer;
+export const serve     = startServer;
 export const watchTask = watchFiles;
 export const initialize = initProject;
 
