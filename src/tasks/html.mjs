@@ -136,6 +136,10 @@ export const htmlTask = (languages, isProd) => {
                     manageEnv: setupNunjucksEnv
                 })
             )
+            .on('error', (err) => {
+                console.error(`HTML error (${lang}):`, err.message);
+                process.exitCode = 1;
+            })
             .on('error', notify.onError({
                 title: 'HTML Compilation Error',
                 message: '<%= error.message %>'
@@ -181,6 +185,13 @@ export const htmlTask = (languages, isProd) => {
                             manageEnv: setupNunjucksEnv
                         })
                     )
+                    .on('error', (err) => {
+                        console.error(
+                            `HTML error (${lang}/${collectionName}/${item.slug}):`,
+                            err.message
+                        );
+                        process.exitCode = 1;
+                    })
                     .on('error', notify.onError({
                         title: 'HTML Compilation Error',
                         message: '<%= error.message %>'
