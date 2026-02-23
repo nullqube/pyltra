@@ -118,9 +118,16 @@ export const htmlTask = (languages, isProd) => {
                         console.log(`Skipping draft page: ${lang}/${filename}`);
                         return null;
                     }
-                    
+
                     console.log(`Building ${lang}/${filename}`);
                     return { activePage: filename, lang, ...pageData };
+                })
+            )
+            // Filter out files where data() returned null (draft pages)
+            .pipe(
+                through2.obj(function (file, _, cb) {
+                    if (file.data !== null) this.push(file);
+                    cb();
                 })
             )
             .pipe(
@@ -145,8 +152,18 @@ export const htmlTask = (languages, isProd) => {
         for (const [collectionName, { item_template, items }] of Object.entries(Config().collections)) {
             const collectionData = pageData[collectionName];
 
+            // Filter drafts from collection listing so they don't appear in index pages
+            if (collectionData?.items) {
+                collectionData.items = filterDraftItems(collectionData.items, isProd);
+            }
+
             for (const item of items) {
                 const itemData = collectionData?.items?.find(i => i.slug === item.slug);
+
+                if (isDraft(itemData, isProd)) {
+                    console.log(`Skipping draft: ${lang}/${collectionName}/${item.slug}`);
+                    continue;
+                }
 
                 const itemStream = gulp
                     .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
@@ -191,6 +208,5 @@ export const htmlTask = (languages, isProd) => {
         );
     }
 
-    // 🔑 ONE stream returned
     return merge(...streams);
 };
