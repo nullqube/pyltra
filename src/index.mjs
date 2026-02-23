@@ -7,10 +7,16 @@ import { scssTask } from './tasks/scss.mjs';
 import { assetsTask } from './tasks/assets.mjs';
 import { startServer, watchFiles } from './tasks/serve.mjs';
 import { initProject } from './tasks/init.mjs';
+import { validateProject } from './utils/validate.mjs';
 
 /* -------------------- */
 /* Private Gulp Tasks   */
 /* -------------------- */
+function validate(done) {
+    validateProject(); // throws on errors, warns and continues otherwise
+    done();
+}
+
 function cleanup() {
     return gulp
         .src(PATHS().dist, { read: false, allowEmpty: true })
@@ -32,13 +38,14 @@ function processResources() {
 function reportSize() {
     return gulp
         .src(`${PATHS().dist}/**/*`)
-        .pipe(size({ showFiles: true, gzip: true, title: 'Build output' }));
+        .pipe(size({ showFiles: true, gzip: true }));
 }
 
 /* -------------------- */
 /* Public Tasks         */
 /* -------------------- */
 export const build = gulp.series(
+    validate,      // ← runs first, blocks build on errors
     cleanup,
     gulp.parallel(
         generateHTML,
@@ -48,8 +55,8 @@ export const build = gulp.series(
     reportSize
 );
 
-export const serve     = startServer;
-export const watchTask = watchFiles;
+export const serve      = startServer;
+export const watchTask  = watchFiles;
 export const initialize = initProject;
 
 /* -------------------- */

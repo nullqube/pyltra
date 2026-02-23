@@ -74,16 +74,16 @@ function loadCollectionsData(lang, cwd) {
                     const parsed = loadContent(readFileSync(itemFilePath, 'utf8'), fileExt);
                     return { slug: item.slug, ...parsed };
                 } catch (e) {
-                    console.warn(`Warning: Missing or invalid item file "${itemFileName}" for lang "${lang}"`);
-                    console.warn(`  → ${e.message}`);
+                    // console.warn(`Warning: Missing or invalid item file "${itemFileName}" for lang "${lang}"`);
+                    // console.warn(`  → ${e.message}`);
                     return { slug: item.slug, ...(item.fallback || {}) };
                 }
             });
 
             result.push({ [collectionName]: { ...collectionData, items: itemsData } });
         } catch (e) {
-            console.warn(`Warning: Missing or invalid collection file "${collectionFileName}" for lang "${lang}"`);
-            console.warn(`  → ${e.message}`);
+            // console.warn(`Warning: Missing or invalid collection file "${collectionFileName}" for lang "${lang}"`);
+            // console.warn(`  → ${e.message}`);
             result.push({ [collectionName]: { items: [] } });
         }
     }
