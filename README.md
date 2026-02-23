@@ -1,5 +1,7 @@
 # Pyltra
 
+Status: Actively developed. Minor breaking changes may occur in 1.x.
+
 A simple and smooth static site generator and CMS and a Gulp-based build tool for static websites. This tool helps you automate tasks like HTML templating, SCSS compilation, asset optimization, and live browser reloading during development.
 
 ## Installation
