@@ -66,6 +66,34 @@ const htmlminOptions = {
 };
 
 // ---------------------------------------------------------------------------
+// Draft helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the item is a draft and should be skipped.
+ * Drafts are always included in dev, always skipped in prod.
+ * @param {Object} itemData
+ * @param {boolean} isProd
+ * @returns {boolean}
+ */
+function isDraft(itemData, isProd) {
+    return isProd && itemData?.draft === true;
+}
+
+/**
+ * Filters or flags draft items in a collection.
+ * In prod: removes drafts entirely.
+ * In dev: keeps them but adds _draft:true so templates can show a "DRAFT" badge.
+ * @param {Object[]} items
+ * @param {boolean} isProd
+ * @returns {Object[]}
+ */
+function filterDraftItems(items, isProd) {
+    if (isProd) return items.filter(item => !item.draft);
+    return items.map(item => ({ ...item, _draft: item.draft === true }));
+}
+
+// ---------------------------------------------------------------------------
 // htmlTask
 // ---------------------------------------------------------------------------
 
@@ -84,6 +112,13 @@ export const htmlTask = (languages, isProd) => {
             .pipe(
                 data((file) => {
                     const filename = file.basename.replace('.html', '');
+                    const page = pageData[filename] || {};
+
+                    if (isDraft(page, isProd)) {
+                        console.log(`Skipping draft page: ${lang}/${filename}`);
+                        return null;
+                    }
+                    
                     console.log(`Building ${lang}/${filename}`);
                     return { activePage: filename, lang, ...pageData };
                 })
