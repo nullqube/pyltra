@@ -194,3 +194,114 @@ If you want, next we can:
 * or decide **where to draw the “stop line”**
 
 Tell me how ambitious you want this to be.
+
+
+
+Stabilize build output
+
+Normalize size reporting
+
+Add per-task size summaries
+
+Optional detailed size output (--details-size)
+
+Formalize environment flags (--prod / --dev)
+
+Unify version source (package.json only)
+
+Harden watch against crashes
+
+Clean CLI shutdown (CTRL+C safe)
+
+Introduce pyltra doctor
+
+Add build warnings (size / config / assets)
+
+Decouple engine from CLI
+
+Make Gulp replaceable
+
+Prepare for global npm usage
+
+Document stable CLI contract
+
+Tag a “recommended stable” release
+
+Yeah — **sorting helps a lot**, especially since you already shipped versions.
+
+Here’s a **clean, opinionated order** that matches *risk → value → future-proofing*:
+
+### 1️⃣ Stabilization (must-do first)
+
+These protect users from broken builds and weird behavior.
+
+* **Stabilize build output**
+* **Harden watch against crashes**
+* **Clean CLI shutdown (CTRL+C safe)**
+* **Normalize size reporting**
+
+---
+
+### 2️⃣ Developer Experience (quick wins)
+
+High value, low risk.
+
+* **Add per-task size summaries**
+* **Optional detailed size output (`--details-size`)**
+* **Build warnings (size / config / assets)**
+
+---
+
+### 3️⃣ CLI & Versioning Hygiene
+
+Important since you already published.
+
+* **Formalize environment flags (`--prod / --dev`)**
+* **Unify version source (package.json only)**
+* **Document stable CLI contract**
+* **Tag a “recommended stable” release**
+
+---
+
+### 4️⃣ Tooling & Support
+
+Helps users help themselves.
+
+* **Introduce `pyltra doctor`**
+
+---
+
+### 5️⃣ Architecture & Future
+
+Not urgent — but sets you up for growth.
+
+* **Decouple engine from CLI**
+* **Make Gulp replaceable**
+* **Prepare for global npm usage**
+
+---
+
+### My honest take
+
+* You **don’t need to redo versions** you published
+* Just **stabilize now**, then:
+
+  * bump **patch** for fixes (1.2.1, 1.2.2)
+  * bump **minor** when adding flags or commands (1.3.0)
+
+If you want, next we can:
+
+* lock **what 1.2.x is allowed to change**
+* or start **Step 1: Stabilize build output** immediately
+
+
+
+
+
+
+
+Pre-build validation — least complex, immediate practical value
+Draft support — very simple to add
+Incremental builds — big dev experience improvement
+Asset fingerprinting — needed before any real deployment
+Page-level SEO metadata — probably already needed
