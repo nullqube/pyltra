@@ -123,8 +123,8 @@ export function loadPageData(lang, cwd = process.cwd()) {
             console.log(`  Loaded ${fileName}`);
             result.push(key === 'shared' ? (loaded[lang] || fallback) : { [key]: loaded });
         } catch (e) {
-            console.warn(`Warning: Missing or invalid "${fileName}" for lang "${lang}"`);
-            console.warn(`  → ${e.message}`);
+            // console.warn(`Warning: Missing or invalid "${fileName}" for lang "${lang}"`);
+            // console.warn(`  → ${e.message}`);
             result.push({ [key]: fallback });
         }
     }
