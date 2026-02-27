@@ -55,11 +55,11 @@ export const build = gulp.series(
     reportSize
 );
 
-export const serve      = startServer;
-export const watchTask  = watchFiles;
+export const serve = gulp.series(build, startServer, watchFiles);
+// export const watchTask  = watchFiles;
 export const initialize = initProject;
 
 /* -------------------- */
 /* Default Gulp Task    */
 /* -------------------- */
-export default gulp.series(build, serve, watchTask);
+// export default gulp.series(build, serve, watchTask);
