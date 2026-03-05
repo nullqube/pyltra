@@ -1,0 +1,1494 @@
+========================================
+File: bin/cli.js
+========================================
+
+#!/usr/bin/env node
+import { Command } from 'commander';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { setIsProd, loadConfig } from '../src/utils/config.mjs';
+import { handleError } from '../src/utils/handleError.mjs';
+
+/* -------------------- */
+/* Setup                */
+/* -------------------- */
+const program = new Command();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+
+program
+    .option('--debug', 'Show full error output')
+    .option('--prod',  'Run in production mode')
+    .option('--dev',   'Run in development mode (default)');
+
+try {
+    const packageJson = JSON.parse(
+        fs.readFileSync(join(__dirname, '..', 'package.json'), 'utf8')
+    );
+    program
+        .name('pyltra')
+        .version(packageJson.version, '-v, --version', 'Output the current version')
+        .description(packageJson.description || 'Static site generator');
+} catch (error) {
+    console.error('Error reading package.json:', error.message);
+    process.exit(1);
+}
+
+/* -------------------- */
+/* Graceful shutdown    */
+/* -------------------- */
+process.on('SIGINT', () => {
+    console.log('\nShutting down...');
+    process.exit(0);
+});
+
+/* -------------------- */
+/* Commands             */
+/* -------------------- */
+program
+    .command('init')
+    .option('-t, --template <template>', 'Template to use', 'basic')
+    .description('Initialize a new project')
+    .action(async (options) => {
+        try {
+            // Dynamically import so config.mjs module-level code doesn't
+            // attempt to load config.yaml before it exists
+            const { initialize } = await import('../src/index.mjs');
+            await initialize(options);
+        } catch (err) {
+            handleError(err, program.opts());
+        }
+    });
+
+program
+    .command('build')
+    .description('Build the project')
+    .action(async () => {
+        try {
+            setIsProd(program.opts().prod);
+            loadConfig();
+            const { build } = await import('../src/index.mjs');
+            // Gulp 4 series/parallel returns a function that accepts a callback
+            await new Promise((resolve, reject) =>
+                build(err => (err ? reject(err) : resolve()))
+            );
+        } catch (err) {
+            handleError(err, program.opts());
+        }
+    });
+
+program
+    .command('serve')
+    .description('Start dev server and watch files')
+    .action(async () => {
+        try {
+            setIsProd(program.opts().prod);
+            loadConfig();
+            const { serve, watchTask } = await import('../src/index.mjs');
+            serve();
+            watchTask();
+        } catch (err) {
+            handleError(err, program.opts());
+        }
+    });
+
+program.parse(process.argv);
+
+========================================
+File: src/index.mjs
+========================================
+
+import gulp from 'gulp';
+import clean from 'gulp-clean';
+import size from 'gulp-size';
+import { IsProd, Languages, PATHS } from './utils/config.mjs';
+import { htmlTask } from './tasks/html.mjs';
+import { scssTask } from './tasks/scss.mjs';
+import { assetsTask } from './tasks/assets.mjs';
+import { startServer, watchFiles } from './tasks/serve.mjs';
+import { initProject } from './tasks/init.mjs';
+import { validateProject } from './utils/validate.mjs';
+
+/* -------------------- */
+/* Private Gulp Tasks   */
+/* -------------------- */
+function validate(done) {
+    validateProject(); // throws on errors, warns and continues otherwise
+    done();
+}
+
+function cleanup() {
+    return gulp
+        .src(PATHS().dist, { read: false, allowEmpty: true })
+        .pipe(clean());
+}
+
+function generateHTML() {
+    return htmlTask(Languages(), IsProd());
+}
+
+function compileStyles() {
+    return scssTask(IsProd());
+}
+
+function processResources() {
+    return assetsTask(IsProd());
+}
+
+function reportSize() {
+    return gulp
+        .src(`${PATHS().dist}/**/*`)
+        .pipe(size({ showFiles: true, gzip: true }));
+}
+
+/* -------------------- */
+/* Public Tasks         */
+/* -------------------- */
+export const build = gulp.series(
+    validate,      // ← runs first, blocks build on errors
+    cleanup,
+    gulp.parallel(
+        generateHTML,
+        compileStyles,
+        processResources
+    ),
+    reportSize
+);
+
+export const serve      = startServer;
+export const watchTask  = watchFiles;
+export const initialize = initProject;
+
+/* -------------------- */
+/* Default Gulp Task    */
+/* -------------------- */
+export default gulp.series(build, serve, watchTask);
+
+========================================
+File: src/tasks/assets.mjs
+========================================
+
+import gulp from 'gulp';
+import imagemin from 'gulp-imagemin';
+import mozjpeg from 'imagemin-mozjpeg';
+import optipng from 'imagemin-optipng';
+import uglify from 'gulp-uglify';
+import cleanCSS from 'gulp-clean-css';
+import sourcemaps from 'gulp-sourcemaps';
+import through2 from 'through2';
+import { PATHS, browserSyncInstance } from '../utils/config.mjs';
+import merge from 'merge-stream';
+
+// ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Processes a single asset type with optional sourcemaps and transform plugin.
+ * Sourcemaps are only initialised when a plugin is present (i.e. something
+ * actually transforms the file) — no-op streams don't need them.
+ *
+ * @param {boolean}  isProd
+ * @param {string}   src
+ * @param {string}   dest
+ * @param {Function} [plugin] - optional gulp transform (uglify, cleanCSS, …)
+ * @returns {NodeJS.ReadWriteStream}
+ */
+function processAsset(isProd, src, dest, plugin) {
+    let stream = gulp.src(src, { allowEmpty: true });
+
+    if (plugin) {
+        if (!isProd) stream = stream.pipe(sourcemaps.init());
+        stream = stream.pipe(plugin());
+        if (!isProd) stream = stream.pipe(sourcemaps.write('../maps'));
+    }
+
+    return stream
+        .pipe(gulp.dest(dest))
+        .pipe(browserSyncInstance.stream());
+}
+
+// ---------------------------------------------------------------------------
+// assetsTask
+// ---------------------------------------------------------------------------
+
+export const assetsTask = (isProd) => {
+    const paths = PATHS();
+
+    const cssTask = processAsset(
+        isProd,
+        paths.assets.css,
+        `${paths.dist}/assets/css`,
+        cleanCSS
+    );
+
+    const jsTask = processAsset(
+        isProd,
+        paths.assets.js,
+        `${paths.dist}/assets/js`,
+        uglify
+    );
+
+    // Images — error handler prevents a single corrupt file crashing the build
+    const imgTask = gulp
+        .src(paths.assets.img, { allowEmpty: true })
+        .pipe(
+            imagemin(
+                [
+                    mozjpeg({ quality: 75, progressive: true }),
+                    optipng({ optimizationLevel: 5 })
+                ],
+                { verbose: true }
+            )
+        )
+        .on('error', (err) => console.error(`imagemin error: ${err.message}`))
+        .pipe(gulp.dest(`${paths.dist}/assets/img`))
+        .pipe(browserSyncInstance.stream());
+
+    // Other assets (fonts, etc.) — copy as-is
+    const otherTask = gulp
+        .src(paths.assets.other, { allowEmpty: true })
+        .pipe(gulp.dest(`${paths.dist}/assets`))
+        .pipe(browserSyncInstance.stream());
+
+    return merge(cssTask, jsTask, imgTask, otherTask);
+};
+
+========================================
+File: src/tasks/html.mjs
+========================================
+
+import gulp from 'gulp';
+import data from 'gulp-data';
+import nunjucksRender from 'gulp-nunjucks-render';
+import through2 from 'through2';
+import rename from 'gulp-rename';
+import htmlmin from 'gulp-htmlmin';
+import { marked } from 'marked';
+import notify from 'gulp-notify';
+import { loadPageData } from '../utils/data.mjs';
+import { PATHS, browserSyncInstance, Config } from '../utils/config.mjs';
+import merge from 'merge-stream';
+
+// ---------------------------------------------------------------------------
+// Nunjucks environment setup — defined once, reused across all tasks
+// ---------------------------------------------------------------------------
+
+/**
+ * Registers all custom filters on a nunjucks Environment.
+ * Called via manageEnv so it runs once per nunjucksRender instance.
+ * @param {import('nunjucks').Environment} env
+ */
+function setupNunjucksEnv(env) {
+    env.addFilter('markdown', (content) => {
+        if (!content) return '';
+        return marked(content);
+    });
+
+    env.addFilter('date', (date) => {
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    });
+
+    env.addFilter('slugify', (str) => {
+        if (!str) return '';
+        return str
+            .toString()
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    });
+
+    env.addFilter('truncate', (str, length) => {
+        if (!str) return '';
+        if (str.length <= length) return str;
+        return str.slice(0, length) + '...';
+    });
+
+    env.addFilter('tojson', (obj) => JSON.stringify(obj, null, 2));
+}
+
+// ---------------------------------------------------------------------------
+// Shared minify options
+// ---------------------------------------------------------------------------
+const htmlminOptions = {
+    collapseWhitespace: true,
+    removeComments: true,
+    minifyCSS: true,
+    minifyJS: true
+};
+
+// ---------------------------------------------------------------------------
+// Draft helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the item is a draft and should be skipped.
+ * Drafts are always included in dev, always skipped in prod.
+ * @param {Object} itemData
+ * @param {boolean} isProd
+ * @returns {boolean}
+ */
+function isDraft(itemData, isProd) {
+    return isProd && itemData?.draft === true;
+}
+
+/**
+ * Filters or flags draft items in a collection.
+ * In prod: removes drafts entirely.
+ * In dev: keeps them but adds _draft:true so templates can show a "DRAFT" badge.
+ * @param {Object[]} items
+ * @param {boolean} isProd
+ * @returns {Object[]}
+ */
+function filterDraftItems(items, isProd) {
+    if (isProd) return items.filter(item => !item.draft);
+    return items.map(item => ({ ...item, _draft: item.draft === true }));
+}
+
+// ---------------------------------------------------------------------------
+// htmlTask
+// ---------------------------------------------------------------------------
+
+export const htmlTask = (languages, isProd) => {
+    const paths = PATHS();
+    const streams = [];
+
+    for (const lang of languages) {
+        const pageData = loadPageData(lang);
+
+        // --------------------
+        // Main pages
+        // --------------------
+        const pagesStream = gulp
+            .src(paths.templates)
+            .pipe(
+                data((file) => {
+                    const filename = file.basename.replace('.html', '');
+                    const page = pageData[filename] || {};
+
+                    if (isDraft(page, isProd)) {
+                        console.log(`Skipping draft page: ${lang}/${filename}`);
+                        return null;
+                    }
+
+                    console.log(`Building ${lang}/${filename}`);
+                    return { activePage: filename, lang, ...pageData };
+                })
+            )
+            // Filter out files where data() returned null (draft pages)
+            .pipe(
+                through2.obj(function (file, _, cb) {
+                    if (file.data !== null) this.push(file);
+                    cb();
+                })
+            )
+            .pipe(
+                nunjucksRender({
+                    path: [`${paths.src}/templates`],
+                    manageEnv: setupNunjucksEnv
+                })
+            )
+            .on('error', (err) => {
+                console.error(`HTML error (${lang}):`, err.message);
+                process.exitCode = 1;
+            })
+            .on('error', notify.onError({
+                title: 'HTML Compilation Error',
+                message: '<%= error.message %>'
+            }))
+            .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+            .pipe(gulp.dest(`${paths.dist}/${lang}`))
+            .pipe(browserSyncInstance.stream());
+
+        streams.push(pagesStream);
+
+        // --------------------
+        // Collection item pages
+        // --------------------
+        for (const [collectionName, { item_template, items }] of Object.entries(Config().collections)) {
+            const collectionData = pageData[collectionName];
+
+            // Filter drafts from collection listing so they don't appear in index pages
+            if (collectionData?.items) {
+                collectionData.items = filterDraftItems(collectionData.items, isProd);
+            }
+
+            for (const item of items) {
+                const itemData = collectionData?.items?.find(i => i.slug === item.slug);
+
+                if (isDraft(itemData, isProd)) {
+                    console.log(`Skipping draft: ${lang}/${collectionName}/${item.slug}`);
+                    continue;
+                }
+
+                const itemStream = gulp
+                    .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
+                    .pipe(
+                        data(() => ({
+                            ...pageData,
+                            lang,
+                            article: itemData,
+                            collection: collectionName
+                        }))
+                    )
+                    .pipe(
+                        nunjucksRender({
+                            path: [`${paths.src}/templates`],
+                            manageEnv: setupNunjucksEnv
+                        })
+                    )
+                    .on('error', (err) => {
+                        console.error(
+                            `HTML error (${lang}/${collectionName}/${item.slug}):`,
+                            err.message
+                        );
+                        process.exitCode = 1;
+                    })
+                    .on('error', notify.onError({
+                        title: 'HTML Compilation Error',
+                        message: '<%= error.message %>'
+                    }))
+                    .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+                    .pipe(rename({ basename: item.slug }))
+                    .pipe(gulp.dest(`${paths.dist}/${lang}/${collectionName}`))
+                    .pipe(browserSyncInstance.stream());
+
+                streams.push(itemStream);
+            }
+        }
+    }
+
+    // --------------------
+    // Bundle files (404.html, etc.)
+    // --------------------
+    for (const fileName of Config().bundles) {
+        streams.push(
+            gulp
+                .src(`${paths.src}/${fileName}`)
+                .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+                .pipe(gulp.dest(paths.dist))
+                .pipe(browserSyncInstance.stream())
+        );
+    }
+
+    return merge(...streams);
+};
+
+========================================
+File: src/tasks/init.mjs
+========================================
+
+import fs from 'fs';
+import yaml from 'js-yaml';
+import prompts from 'prompts';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+export const initProject = async (options = {}) => {
+    let { template = 'empty' } = options || {};
+
+    if (['empty', 'basic'].includes(template)) {
+        console.log(`You entered template: "${template}"`);
+    } else {
+        console.log(`Template "${template}" not recognised, defaulting to "empty"`);
+        template = 'empty';
+    }
+
+    const response = await prompts(
+        [
+            {
+                type: 'text',
+                name: 'projectName',
+                message: 'Enter the project name:',
+                validate: value => value.trim().length > 0 ? true : 'Project name is required'
+            },
+            {
+                type: 'text',
+                name: 'projectDescription',
+                message: 'Enter the project description:'
+            },
+            {
+                type: 'confirm',
+                name: 'createReadme',
+                message: 'Create README.md?',
+                initial: true
+            },
+            {
+                type: 'confirm',
+                name: 'createGitignore',
+                message: 'Create .gitignore?',
+                initial: true
+            }
+        ],
+        {
+            // Treat Ctrl+C as cancellation rather than a hard crash
+            onCancel: () => {
+                console.log('\nProject initialization cancelled.');
+                process.exit(0);
+            }
+        }
+    );
+
+    const { projectName, projectDescription, createReadme, createGitignore } = response;
+
+    console.log('\nInitializing project...');
+    console.log(`Creating project: ${projectName}`);
+
+    const projectDir   = projectName.trim();
+    const projectPath  = path.resolve(process.cwd(), projectDir);
+
+    // Guard: validate template exists before touching the filesystem
+    const __filename   = fileURLToPath(import.meta.url);
+    const __dirname    = path.dirname(__filename);
+    const TEMPLATE_DIR = path.resolve(__dirname, '../../templates');
+    const templatePath = path.join(TEMPLATE_DIR, template);
+
+    if (!fs.existsSync(templatePath)) {
+        throw new Error(
+            `Template "${template}" not found at: ${templatePath}\n` +
+            `Available templates: ${fs.readdirSync(TEMPLATE_DIR).join(', ')}`
+        );
+    }
+
+    // recursive: true is safe even if parents already exist
+    if (!fs.existsSync(projectPath)) {
+        fs.mkdirSync(projectPath, { recursive: true });
+        console.log(`Created project directory: ${projectDir}`);
+    } else {
+        console.log(`Directory "${projectDir}" already exists, continuing...`);
+    }
+
+    initWithTemplate(template, projectPath, templatePath);
+    createFoldersStructure(projectPath);
+    createDefaultConfig(projectPath);
+
+    if (createReadme) {
+        const readmeContent = [
+            `# ${projectName}`,
+            '',
+            projectDescription || '',
+            '',
+            '## Getting Started',
+            '',
+            'Run `npm install` to install dependencies.',
+            'Run `pyltra serve` to start the development server.',
+            'Run `pyltra build --prod` to build for production.',
+        ].join('\n');
+        fs.writeFileSync(path.join(projectPath, 'README.md'), readmeContent, 'utf8');
+        console.log('Created README.md');
+    }
+
+    if (createGitignore) {
+        const gitignoreContent = `node_modules/\ndist/\n.DS_Store\n.env\n`;
+        fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignoreContent, 'utf8');
+        console.log('Created .gitignore');
+    }
+
+    console.log('\n✅ Project initialized successfully!');
+    console.log(`\nNext steps:\n  cd ${projectDir}\n  npm install\n  pyltra serve`);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates the default config.yaml.
+ * @param {string} projectPath
+ */
+function createDefaultConfig(projectPath) {
+    const configPath = path.join(projectPath, 'config.yaml');
+    // Don't overwrite if template already provided one
+    if (fs.existsSync(configPath)) {
+        console.log('config.yaml already exists from template, skipping.');
+        return;
+    }
+
+    const config = {
+        languages: [{ code: 'en', name: 'English' }],
+        pages: {
+            index: {
+                file: '${lang}.index.yaml',
+                fallback: {
+                    title: 'Error',
+                    heading: 'Page Not Found',
+                    content: 'Index data missing.'
+                }
+            }
+        },
+        bundles: ['404.html', '50x.html']
+    };
+
+    fs.writeFileSync(configPath, yaml.dump(config), 'utf8');
+    console.log('Created config.yaml');
+}
+
+/**
+ * Creates the default folder structure.
+ * @param {string} projectPath
+ */
+function createFoldersStructure(projectPath) {
+    const defaultDirs = [
+        'src',
+        'src/assets',
+        'src/assets/scss',
+        'src/assets/js',
+        'src/assets/img',
+        'src/assets/fonts',
+        'src/data',
+        'src/templates',
+        'dist'
+    ];
+
+    defaultDirs.forEach(dir => {
+        const fullPath = path.join(projectPath, dir);
+        if (!fs.existsSync(fullPath)) {
+            fs.mkdirSync(fullPath, { recursive: true });
+            console.log(`Created directory: ${dir}`);
+        }
+    });
+}
+
+/**
+ * Copies template files into the project directory.
+ * @param {string} template
+ * @param {string} projectPath
+ * @param {string} templatePath - pre-validated path
+ */
+function initWithTemplate(template, projectPath, templatePath) {
+    fs.cpSync(templatePath, projectPath, { recursive: true });
+    console.log(`Initialized with "${template}" template.`);
+}
+
+========================================
+File: src/tasks/scss.mjs
+========================================
+
+import gulp from 'gulp';
+import gulpSass from 'gulp-sass';
+import autoprefixer from 'autoprefixer';
+import postcss from 'gulp-postcss';
+import cleanCSS from 'gulp-clean-css';
+import sourcemaps from 'gulp-sourcemaps';
+import through2 from 'through2';
+import notify from 'gulp-notify';
+import * as dartSass from 'sass';
+import { PATHS, browserSyncInstance } from '../utils/config.mjs';
+
+const sass = gulpSass(dartSass);
+
+export const scssTask = (isProd) => {
+    const paths   = PATHS();
+    const mapsDir = `${paths.dist}/maps`; // derived from config, not hardcoded
+
+    return gulp
+        .src(paths.assets.scss)
+        .pipe(isProd ? through2.obj() : sourcemaps.init())
+        .pipe(sass().on('error', sass.logError))
+        .on('error', notify.onError({
+            title: 'SCSS Compilation Error',
+            message: '<%= error.message %>'
+        }))
+        .pipe(postcss([autoprefixer()]))
+        .pipe(isProd ? cleanCSS() : through2.obj())
+        .pipe(isProd ? through2.obj() : sourcemaps.write(mapsDir))
+        .pipe(gulp.dest(`${paths.dist}/assets/css`))
+        .pipe(browserSyncInstance.stream());
+};
+
+========================================
+File: src/tasks/serve.mjs
+========================================
+
+import gulp from 'gulp';
+import { PATHS, browserSyncInstance, Languages, IsProd } from '../utils/config.mjs';
+import { htmlTask } from './html.mjs';
+import { assetsTask } from './assets.mjs';
+import { scssTask } from './scss.mjs';
+import { invalidateCache } from '../utils/data.mjs';
+
+export const startServer = (done = () => {}) => {
+    const langs = Languages();
+    const defaultLang = langs.length > 0 ? langs[0] : 'en';
+    const defaultPath = `/${defaultLang}/`;
+
+    console.log(`Serving ${langs.join(', ')} from dist/`);
+
+    browserSyncInstance.init(
+        {
+            server: { baseDir: PATHS().dist },
+            open: true,
+            notify: true,
+            startPath: defaultPath,
+        },
+        () => console.log('BrowserSync serving from dist/')
+    );
+
+    done();
+};
+
+export const watchFiles = () => {
+    const paths = PATHS(); // resolve once for this call
+
+    gulp.watch(`${paths.data}/**/*.yaml`, (done) => {
+        invalidateCache(); // clear all, or pass a specific lang
+        htmlTask(Languages(), IsProd());
+        done();
+    });
+
+    //If htmlTask throws (bad YAML, bad template), watcher can die silently.
+    //fix: Wrap in try/catch inside watch callback:
+    gulp.watch(paths.templates, async (done) => {
+        try {
+            await htmlTask(Languages(), IsProd());
+        } catch (e) {
+            console.error(e);
+        }
+        done();
+    });
+    gulp.watch(`${paths.src}/config.yaml`, async (done) => {
+        try {
+            await htmlTask(Languages(), IsProd());
+        } catch (e) {
+            console.error(e);
+        }
+        done();
+    });
+
+    gulp.watch(paths.assets.scss,          () => scssTask(IsProd()));
+
+    // Flatten all asset globs, filter out any undefined/empty values
+    const assetsGlobs = [
+        paths.assets.css,
+        paths.assets.js,
+        paths.assets.img,
+        ...paths.assets.other
+    ].filter(Boolean); // Remove any falsy values (undefined, null, empty string)
+    // (Boolean is the constructor function of the class, so it converts everything
+    //  to boolean then null become false and filter remove it)
+    // This is a common JavaScript technique to remove any falsy values from an array. 
+    // In this context, it ensures that if any of the asset paths (css, js, img, other) are undefined, null, or empty strings,
+    // they will be filtered out before we attempt to set up a watcher on them. 
+    // This prevents errors that would occur if gulp.watch is given invalid paths.
+
+    if (assetsGlobs.length > 0) {
+        gulp.watch(assetsGlobs, () => assetsTask(IsProd()));
+    }
+};
+
+========================================
+File: src/utils/config.mjs
+========================================
+
+import { readFileSync } from 'fs';
+import yaml from 'js-yaml';
+import fs from 'fs';
+import browserSync from 'browser-sync';
+
+// ---------------------------------------------------------------------------
+// BrowserSync
+// ---------------------------------------------------------------------------
+export const browserSyncInstance = browserSync.create();
+
+// ---------------------------------------------------------------------------
+// JSDoc Types
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} LanguageConfig
+ * @property {string} code - Language code e.g. 'en'
+ * @property {string} name - Display name e.g. 'English'
+ */
+
+/**
+ * @typedef {Object} PageConfig
+ * @property {string} [file] - Data file pattern e.g. '${lang}.index.yaml'
+ * @property {Object} [fallback] - Fallback data if file is missing
+ */
+
+/**
+ * @typedef {Object} CollectionItemConfig
+ * @property {string} slug
+ * @property {string} file
+ * @property {Object} [fallback]
+ */
+
+/**
+ * @typedef {Object} CollectionConfig
+ * @property {string} template
+ * @property {string} item_template
+ * @property {string} dataFile
+ * @property {CollectionItemConfig[]} items
+ */
+
+/**
+ * @typedef {Object} AssetsPathsConfig
+ * @property {string} scss
+ * @property {string} css
+ * @property {string} js
+ * @property {string} img
+ * @property {string[]} other
+ */
+
+/**
+ * @typedef {Object} PathsConfig
+ * @property {string} src
+ * @property {string} dist
+ * @property {string} data
+ * @property {string} templates
+ * @property {AssetsPathsConfig} assets
+ */
+
+/**
+ * @typedef {Object} SiteConfig
+ * @property {LanguageConfig[]} languages
+ * @property {Object.<string, PageConfig>} pages
+ * @property {Object.<string, CollectionConfig>} collections
+ * @property {string[]} bundles
+ * @property {Partial<PathsConfig>} [paths]
+ */
+
+// ---------------------------------------------------------------------------
+// Defaults — merged with user config so consumers never need || {}
+// ---------------------------------------------------------------------------
+
+/** @type {SiteConfig} */
+const CONFIG_DEFAULTS = {
+    languages:   [],
+    pages:       {},
+    collections: {},
+    bundles:     [],
+    paths:       {}
+};
+
+// ---------------------------------------------------------------------------
+// Schema validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates the raw loaded config and throws with all errors listed at once.
+ * @param {unknown} config
+ * @returns {void}
+ */
+function validateConfig(config) {
+    const errors = [];
+
+    if (!config || typeof config !== 'object') {
+        throw new Error('config.yaml must be a YAML object, got: ' + typeof config);
+    }
+
+    // languages
+    if (!Array.isArray(config.languages) || config.languages.length === 0) {
+        errors.push('"languages" must be a non-empty array');
+    } else {
+        config.languages.forEach((lang, i) => {
+            if (!lang.code || typeof lang.code !== 'string')
+                errors.push(`languages[${i}] is missing a valid "code" string`);
+            if (!lang.name || typeof lang.name !== 'string')
+                errors.push(`languages[${i}] is missing a valid "name" string`);
+        });
+    }
+
+    // pages
+    if (!config.pages || typeof config.pages !== 'object' || Array.isArray(config.pages)) {
+        errors.push('"pages" must be an object');
+    }
+
+    // collections (optional)
+    if (config.collections !== undefined) {
+        if (typeof config.collections !== 'object' || Array.isArray(config.collections)) {
+            errors.push('"collections" must be an object if defined');
+        } else {
+            Object.entries(config.collections).forEach(([name, col]) => {
+                if (!col.template)
+                    errors.push(`collections.${name} is missing "template"`);
+                if (!col.item_template)
+                    errors.push(`collections.${name} is missing "item_template"`);
+                if (!col.dataFile)
+                    errors.push(`collections.${name} is missing "dataFile"`);
+                if (!Array.isArray(col.items)) {
+                    errors.push(`collections.${name} "items" must be an array`);
+                } else {
+                    col.items.forEach((item, i) => {
+                        if (!item.slug) errors.push(`collections.${name}.items[${i}] is missing "slug"`);
+                        if (!item.file) errors.push(`collections.${name}.items[${i}] is missing "file"`);
+                    });
+                }
+            });
+        }
+    }
+
+    // bundles (optional)
+    if (config.bundles !== undefined && !Array.isArray(config.bundles)) {
+        errors.push('"bundles" must be an array if defined');
+    }
+
+    // paths (optional)
+    if (config.paths !== undefined &&
+        (typeof config.paths !== 'object' || Array.isArray(config.paths))) {
+        errors.push('"paths" must be an object if defined');
+    }
+
+    if (errors.length > 0) {
+        throw new Error(
+            `config.yaml has ${errors.length} error(s):\n` +
+            errors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Merge & build paths
+// ---------------------------------------------------------------------------
+
+/**
+ * Deep merges defaults with user config. User values always win.
+ * @param {SiteConfig} defaults
+ * @param {SiteConfig} userConfig
+ * @returns {SiteConfig}
+ */
+function mergeWithDefaults(defaults, userConfig) {
+    return {
+        ...defaults,
+        ...userConfig,
+        paths:       { ...defaults.paths,       ...(userConfig.paths       || {}) },
+        collections: { ...defaults.collections, ...(userConfig.collections || {}) }
+    };
+}
+
+/**
+ * Derives PATHS from the merged config so users can override
+ * src, dist, data, or templates in config.yaml.
+ * @param {SiteConfig} config
+ * @returns {PathsConfig}
+ */
+function buildPaths(config) {
+    const overrides = config.paths || {};
+    const src  = overrides.src  || 'src';
+    const dist = overrides.dist || 'dist';
+    const data = overrides.data || `${src}/data`;
+
+    return {
+        src,
+        dist,
+        data,
+        templates: overrides.templates || `${src}/templates/*.html`,
+        assets: {
+            scss:  `${src}/assets/scss/**/*.scss`,
+            css:   `${src}/assets/css/**/*.css`,
+            js:    `${src}/assets/js/**/*.js`,
+            img:   `${src}/assets/img/**/*`,
+            other: [
+                `${src}/assets/**/*`,
+                `!${src}/assets/scss/**`,
+                `!${src}/assets/css/**/*.css`,
+                `!${src}/assets/js/**/*.js`,
+                `!${src}/assets/img/**/*`
+            ],
+            // Allow full per-key asset override if needed
+            ...(overrides.assets || {})
+        }
+    };
+}
+
+// ---------------------------------------------------------------------------
+// ConfigLoader
+// ---------------------------------------------------------------------------
+
+class ConfigLoader {
+    constructor() {
+        /** @type {SiteConfig|null} */
+        this._config = null;
+        /** @type {PathsConfig|null} */
+        this._paths = null;
+        /** @type {boolean} */
+        this._isProd = false;
+    }
+
+    /** @param {boolean} value */
+    setIsProd(value) {
+        this._isProd = !!value;
+        console.log(`Running in ${this._isProd ? 'production' : 'development'} mode`);
+    }
+
+    /**
+     * Loads, validates, and merges config.yaml.
+     * Safe to call multiple times — returns cached result after first load.
+     * @returns {SiteConfig}
+     */
+    loadConfig() {
+        if (this._config) return this._config;
+
+        if (!fs.existsSync('./config.yaml')) {
+            throw new Error(
+                'config.yaml not found in the current directory.\n' +
+                'Run "pyltra init" to scaffold a new project first.'
+            );
+        }
+
+        let raw;
+        try {
+            raw = yaml.load(readFileSync('./config.yaml', 'utf8'));
+        } catch (e) {
+            throw new Error(`Failed to parse config.yaml: ${e.message}`);
+        }
+
+        // Throws listing ALL validation errors at once — no more silent surprises
+        validateConfig(raw);
+
+        // Merge with defaults — consumers can trust collections/bundles are always present
+        this._config = mergeWithDefaults(CONFIG_DEFAULTS, raw);
+
+        // Build PATHS derived from config so overrides in config.yaml are respected
+        this._paths = buildPaths(this._config);
+
+        return this._config;
+    }
+
+    /** @returns {SiteConfig} */
+    getConfig() {
+        if (!this._config) throw new Error('Config not loaded. Call loadConfig() first.');
+        return this._config;
+    }
+
+    /** @returns {PathsConfig} */
+    getPaths() {
+        if (!this._paths) throw new Error('Config not loaded. Call loadConfig() first.');
+        return this._paths;
+    }
+
+    /** @returns {string[]} */
+    getLanguages() {
+        return this.getConfig().languages.map(lang => lang.code);
+    }
+
+    /** @returns {boolean} */
+    getIsProd() {
+        return this._isProd;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Singleton
+// ---------------------------------------------------------------------------
+
+export const getConfigLoader = (() => {
+    let instance = null;
+    return () => {
+        if (!instance) instance = new ConfigLoader();
+        return instance;
+    };
+})();
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/** Call once from cli.mjs after Commander has parsed args */
+export const setIsProd  = (value) => getConfigLoader().setIsProd(value);
+
+/** Call once before build/serve. Safe to skip during `init` */
+export const loadConfig = () => getConfigLoader().loadConfig();
+
+/** @returns {boolean} */
+export const IsProd     = () => getConfigLoader().getIsProd();
+
+/** @returns {SiteConfig} */
+export const Config     = () => getConfigLoader().getConfig();
+
+/** @returns {string[]} */
+export const Languages  = () => getConfigLoader().getLanguages();
+
+/**
+ * PATHS is now a function derived from config at load time.
+ * Always reflects any path overrides defined in config.yaml.
+ * 
+ * NOTE: All consumers (html.mjs, scss.mjs, assets.mjs, serve.mjs, data.mjs)
+ * must update their import from:
+ *   import { PATHS } from '../utils/config.mjs'
+ * to call it as a function:
+ *   PATHS().dist  PATHS().templates  PATHS().data  etc.
+ * 
+ * @returns {PathsConfig}
+ */
+export const PATHS = () => getConfigLoader().getPaths();
+
+========================================
+File: src/utils/data.mjs
+========================================
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import yaml from 'js-yaml';
+import matter from 'gray-matter';
+import { marked } from 'marked';
+import { Config, PATHS } from './config.mjs';
+
+// ---------------------------------------------------------------------------
+// Cache — keyed by lang, invalidated explicitly on watch rebuilds
+// ---------------------------------------------------------------------------
+
+/** @type {Map<string, Object>} */
+const pageDataCache = new Map();
+
+/**
+ * Clears cached data for a specific language, or all languages if omitted.
+ * Call this from watch handlers before triggering htmlTask so stale data
+ * isn't served.
+ * @param {string} [lang]
+ */
+export function invalidateCache(lang) {
+    if (lang) {
+        pageDataCache.delete(lang);
+    } else {
+        pageDataCache.clear();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Content loaders
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {string} fileContent
+ * @param {'md'|'json'|'yaml'} fileType
+ * @returns {Object}
+ */
+function loadContent(fileContent, fileType) {
+    if (fileType === 'md') {
+        const { data, content } = matter(fileContent);
+        return { ...data, content: marked(content) };
+    }
+    if (fileType === 'json') return JSON.parse(fileContent);
+    if (fileType === 'yaml') return yaml.load(fileContent);
+    throw new Error(`Unsupported file type: ${fileType}`);
+}
+
+// ---------------------------------------------------------------------------
+// Collections
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {string} lang
+ * @param {string} cwd
+ * @returns {Object}
+ */
+function loadCollectionsData(lang, cwd) {
+    const dataDir = PATHS().data;
+    const result  = [];
+
+    for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
+        const collectionFileName = dataFile.replace('${lang}', lang);
+        const collectionFilePath = join(cwd, dataDir, collectionFileName);
+
+        try {
+            const collectionData = yaml.load(readFileSync(collectionFilePath, 'utf8'));
+
+            const itemsData = items.map(item => {
+                const itemFileName = item.file.replace('${lang}', lang);
+                const itemFilePath = join(cwd, dataDir, itemFileName);
+                const fileExt      = itemFileName.split('.').pop();
+
+                try {
+                    const parsed = loadContent(readFileSync(itemFilePath, 'utf8'), fileExt);
+                    return { slug: item.slug, ...parsed };
+                } catch (e) {
+                    // console.warn(`Warning: Missing or invalid item file "${itemFileName}" for lang "${lang}"`);
+                    // console.warn(`  → ${e.message}`);
+                    return { slug: item.slug, ...(item.fallback || {}) };
+                }
+            });
+
+            result.push({ [collectionName]: { ...collectionData, items: itemsData } });
+        } catch (e) {
+            // console.warn(`Warning: Missing or invalid collection file "${collectionFileName}" for lang "${lang}"`);
+            // console.warn(`  → ${e.message}`);
+            result.push({ [collectionName]: { items: [] } });
+        }
+    }
+
+    return Object.assign({}, ...result);
+}
+
+// ---------------------------------------------------------------------------
+// Page data
+// ---------------------------------------------------------------------------
+
+/**
+ * Loads and merges all page data for a given language.
+ * Results are cached — call invalidateCache(lang) before rebuilding on watch.
+ * @param {string} lang
+ * @param {string} [cwd]
+ * @returns {Object}
+ */
+export function loadPageData(lang, cwd = process.cwd()) {
+    if (pageDataCache.has(lang)) {
+        console.log(`Using cached data for "${lang}"`);
+        return pageDataCache.get(lang);
+    }
+
+    const dataDir = PATHS().data;
+    const result  = [{ langs: Config().languages }];
+
+    console.log(`Loading data for "${lang}"...`);
+
+    for (const [key, value] of Object.entries(Config().pages)) {
+        const { file = '', fallback = {} } = value ?? {};
+        const fileName = file ? file.replace('${lang}', lang) : `${lang}/${key}.yaml`;
+        const filePath = join(cwd, dataDir, fileName);
+
+        try {
+            const loaded = yaml.load(readFileSync(filePath, 'utf8'));
+            console.log(`  Loaded ${fileName}`);
+            result.push(key === 'shared' ? (loaded[lang] || fallback) : { [key]: loaded });
+        } catch (e) {
+            // console.warn(`Warning: Missing or invalid "${fileName}" for lang "${lang}"`);
+            // console.warn(`  → ${e.message}`);
+            result.push({ [key]: fallback });
+        }
+    }
+
+    const collections = loadCollectionsData(lang, cwd);
+    if (Object.keys(collections).length > 0) {
+        result.push(collections);
+    }
+
+    const pageData = Object.assign({}, ...result);
+    pageDataCache.set(lang, pageData);
+    return pageData;
+}
+
+========================================
+File: src/utils/handleError.mjs
+========================================
+
+export function handleError(error, options = {}) {
+  const debug = options.debug || process.env.DEBUG;
+
+  if (debug) {
+    console.error(error);
+  } else {
+    console.error(`❌ ${error.message}`);
+  }
+
+  process.exit(1);
+}
+
+========================================
+File: src/utils/sizeReporter.mjs
+========================================
+
+import size from 'gulp-size';
+
+const reports = {};
+
+export function sizeCollector(taskName) {
+    return size({
+        showFiles: false,
+        showTotal: false,
+        gzip: true,
+        pretty: true,
+        title: taskName,
+        transform: (file, s) => {
+            if (!reports[taskName]) {
+                reports[taskName] = {
+                    count: 0,
+                    size: 0
+                };
+            }
+
+            reports[taskName].count += 1;
+            reports[taskName].size += s.size;
+        }
+    });
+}
+
+export function printSizeReport() {
+    console.log('\n📦 Build size report:\n');
+
+    Object.entries(reports).forEach(([task, data]) => {
+        const kb = (data.size / 1024).toFixed(2);
+        console.log(
+            `• ${task}: ${kb} kB (gzipped) — ${data.count} files`
+        );
+    });
+
+    console.log('');
+}
+
+========================================
+File: src/utils/validate.mjs
+========================================
+
+import fs from 'fs';
+import { join } from 'path';
+import { Config, Languages, PATHS } from '../utils/config.mjs';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} ValidationResult
+ * @property {string[]} errors   - Block the build
+ * @property {string[]} warnings - Continue with fallback
+ */
+
+/** @returns {ValidationResult} */
+function createResult() {
+    return { errors: [], warnings: [] };
+}
+
+function fileExists(path) {
+    return fs.existsSync(path);
+}
+
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates that all templates referenced in collections exist.
+ * @param {ValidationResult} result
+ */
+function validateTemplates(result) {
+    const paths      = PATHS();
+    const config     = Config();
+    const srcTemplates = `${paths.src}/templates`;
+
+    for (const [name, col] of Object.entries(config.collections)) {
+        if (col.template) {
+            const p = join(srcTemplates, col.template);
+            if (!fileExists(p))
+                result.errors.push(`Collection "${name}": template not found → ${p}`);
+        }
+        if (col.item_template) {
+            const p = join(srcTemplates, col.item_template);
+            if (!fileExists(p))
+                result.errors.push(`Collection "${name}": item_template not found → ${p}`);
+        }
+    }
+}
+
+/**
+ * Validates that page data files exist for each language.
+ * Missing page files are warnings (fallbacks handle them).
+ * @param {ValidationResult} result
+ */
+function validatePageData(result) {
+    const paths    = PATHS();
+    const config   = Config();
+    const languages = Languages();
+
+    for (const lang of languages) {
+        for (const [key, value] of Object.entries(config.pages)) {
+            const { file = '' } = value ?? {};
+            const fileName = file
+                ? file.replace('${lang}', lang)
+                : `${lang}/${key}.yaml`;
+            const filePath = join(paths.data, fileName);
+
+            if (!fileExists(filePath))
+                result.warnings.push(`Page "${key}" [${lang}]: data file not found → ${filePath}`);
+        }
+    }
+}
+
+/**
+ * Validates that collection data files and item files exist per language.
+ * Missing collection dataFile is an error. Missing item files are warnings.
+ * @param {ValidationResult} result
+ */
+function validateCollectionData(result) {
+    const paths     = PATHS();
+    const config    = Config();
+    const languages = Languages();
+
+    for (const lang of languages) {
+        for (const [name, col] of Object.entries(config.collections)) {
+            // Collection data file — error if missing
+            const dataFileName = col.dataFile.replace('${lang}', lang);
+            const dataFilePath = join(paths.data, dataFileName);
+            if (!fileExists(dataFilePath)) {
+                result.errors.push(`Collection "${name}" [${lang}]: dataFile not found → ${dataFilePath}`);
+            }
+
+            // Individual item files — warning if missing (fallback handles it)
+            for (const item of col.items) {
+                const itemFileName = item.file.replace('${lang}', lang);
+                const itemFilePath = join(paths.data, itemFileName);
+                if (!fileExists(itemFilePath)) {
+                    result.warnings.push(
+                        `Collection "${name}" [${lang}]: item "${item.slug}" file not found → ${itemFilePath}`
+                    );
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Report
+// ---------------------------------------------------------------------------
+
+/**
+ * Prints a formatted validation report to the console.
+ * @param {ValidationResult} result
+ */
+function printReport(result) {
+    const { errors, warnings } = result;
+    const total = errors.length + warnings.length;
+
+    if (total === 0) {
+        console.log('✅ Validation passed — no issues found.\n');
+        return;
+    }
+
+    console.log('\n── Validation Report ──────────────────────────────');
+
+    if (warnings.length > 0) {
+        console.log(`\n⚠️  Warnings (${warnings.length}) — build will continue with fallbacks:`);
+        warnings.forEach(w => console.warn(`   • ${w}`));
+    }
+
+    if (errors.length > 0) {
+        console.log(`\n❌ Errors (${errors.length}) — build cannot continue:`);
+        errors.forEach(e => console.error(`   • ${e}`));
+    }
+
+    console.log('\n────────────────────────────────────────────────────\n');
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs all validations. Throws if any errors are found.
+ * Warnings are printed but do not block the build.
+ */
+export function validateProject() {
+    console.log('Validating project...');
+
+    const result = createResult();
+
+    validateTemplates(result);
+    validatePageData(result);
+    validateCollectionData(result);
+
+    printReport(result);
+
+    if (result.errors.length > 0) {
+        throw new Error(
+            `Validation failed with ${result.errors.length} error(s). Fix them before building.`
+        );
+    }
+}
+
