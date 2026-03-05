@@ -12,9 +12,15 @@
         "pyltra": "./bin/cli.js"
     },
     "dependencies": {
-        "autoprefixer": "^10.4.21",
+        "autoprefixer": "^10.4.27",
         "browser-sync": "^3.0.2",
+        "chokidar": "^3.6.0",
         "commander": "^13.1.0",
+        "cssnano": "^7.1.2",
+        "date-fns": "^4.1.0",
+        "esbuild": "^0.27.3",
+        "fast-glob": "^3.3.3",
+        "fs-extra": "^11.3.4",
         "gray-matter": "^4.0.3",
         "gulp": "^4.0.2",
         "gulp-clean": "^0.4.0",
@@ -34,11 +40,19 @@
         "imagemin-mozjpeg": "^10.0.0",
         "imagemin-optipng": "^8.0.0",
         "js-yaml": "^4.1.0",
+        "markdown-it": "^14.1.1",
         "marked": "^15.0.8",
         "minimist": "^1.2.8",
+        "nunjucks": "^3.2.4",
+        "postcss": "^8.5.8",
         "prompts": "^2.4.2",
         "sass": "^1.86.0",
-        "through2": "^4.0.2"
+        "sharp": "^0.34.5",
+        "sirv": "^3.0.2",
+        "slugify": "^1.6.6",
+        "through2": "^4.0.2",
+        "yaml": "^2.8.2",
+        "zod": "^4.3.6"
     },
     "keywords": [
         "gulp",
@@ -54,5 +68,8 @@
     "bugs": {
         "url": "https://github.com/nullqube/pyltra/issues"
     },
-    "homepage": "https://github.com/nullqube/pyltra#readme"
+    "homepage": "https://github.com/nullqube/pyltra#readme",
+    "devDependencies": {
+        "nodemon": "^3.1.14"
+    }
 }
