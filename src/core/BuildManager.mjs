@@ -1,6 +1,21 @@
-// 
-// 
-// 
+/**
+ * BuildManager
+ * ------------
+ * Coordinates full build lifecycle.
+ *
+ * Responsibilities:
+ * - Validate
+ * - Clean
+ * - Render
+ * - Process assets
+ *
+ * Does NOT handle CLI or server.
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { Renderer } from '../domain/Renderer.js';
+import { AssetPipeline } from '../domain/AssetPipeline.js';
 
 class BuildManager {
     constructor( project ) {
@@ -11,12 +26,33 @@ class BuildManager {
         this.validator = new ConfigValidator(project);
     }
 
+    /**
+     * Full build lifecycle
+     */
     async build() {
-        await this.validator.validate();
+        await this.validate();
         await this.clean();
         await this.renderer.renderAll();
         await this.assets.processAll();
     }
 
-    async clean() { }
+    /**
+     * Validates project
+     */
+    async validate() {
+        return this.validator.validate();
+    }
+
+    /**
+     * Cleans dist folder
+     */
+    async clean() {
+        const distPath = path.join(this.project.cwd, this.project.paths.dist);
+
+        if (fs.existsSync(distPath)) {
+            fs.rmSync(distPath, { recursive: true, force: true });
+        }
+
+        fs.mkdirSync(distPath, { recursive: true });
+    }
 }

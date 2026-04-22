@@ -33,9 +33,7 @@ export class PyltraEngine {
      * @param {'dev' | 'prod'} [options.mode]
      */
     constructor( options = {} ) {
-        this.project = new Project(options);
-        this.buildManager = new BuildManager(this.project);
-        this.devServer = new DevServer(this.project, this.buildManager);
+        this.options = options;
     }
 
     /**
@@ -43,6 +41,15 @@ export class PyltraEngine {
      */
     async init(initOptions) {
         await this.project.initialize(initOptions);
+    }
+
+    /**
+     * Initializes a new project (used by CLI init command)
+     */
+    async load(initOptions) {
+        this.project = new Project(options);
+        this.buildManager = new BuildManager(this.project);
+        this.devServer = new DevServer(this.project, this.buildManager);
     }
 
     /**
