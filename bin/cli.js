@@ -81,9 +81,10 @@ program
         try {
             setIsProd(program.opts().prod);
             loadConfig();
-            const { serve, watchTask } = await import('../src/index.mjs');
-            serve();
-            watchTask();
+            const { serve } = await import('../src/index.mjs');
+            await new Promise((resolve, reject) =>
+                serve(err => (err ? reject(err) : resolve()))
+            );
         } catch (err) {
             handleError(err, program.opts());
         }

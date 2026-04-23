@@ -94,129 +94,169 @@ function filterDraftItems(items, isProd) {
 }
 
 // ---------------------------------------------------------------------------
+// Stream builders
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds all main page streams for a language.
+ * @param {string} lang
+ * @param {Object} pageData
+ * @param {boolean} isProd
+ * @param {Object} paths
+ * @returns {NodeJS.ReadWriteStream}
+ */
+function buildPagesStream(lang, pageData, isProd, paths) {
+    return gulp
+        .src(paths.templates)
+        .pipe(
+            data((file) => {
+                const filename = file.basename.replace('.html', '');
+                const page = pageData[filename] || {};
+
+                if (isDraft(page, isProd)) {
+                    console.log(`Skipping draft page: ${lang}/${filename}`);
+                    return null;
+                }
+
+                console.log(`Building ${lang}/${filename}`);
+                return { activePage: filename, lang, ...pageData };
+            })
+        )
+        .pipe(
+            through2.obj(function (file, _, cb) {
+                if (file.data !== null) this.push(file);
+                cb();
+            })
+        )
+        .pipe(nunjucksRender({
+            path: [`${paths.src}/templates`],
+            manageEnv: setupNunjucksEnv
+        }))
+        .on('error', notify.onError({
+            title: 'HTML Compilation Error',
+            message: '<%= error.message %>'
+        }))
+        .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+        .pipe(gulp.dest(`${paths.dist}/${lang}`))
+        .pipe(browserSyncInstance.stream());
+}
+
+/**
+ * Builds a single collection item stream.
+ * @param {string} lang
+ * @param {string} collectionName
+ * @param {string} item_template
+ * @param {Object} item
+ * @param {Object} itemData
+ * @param {Object} pageData
+ * @param {boolean} isProd
+ * @param {Object} paths
+ * @returns {NodeJS.ReadWriteStream|null}
+ */
+function buildItemStream(lang, collectionName, item_template, item, itemData, pageData, isProd, paths) {
+    if (isDraft(itemData, isProd)) {
+        console.log(`Skipping draft: ${lang}/${collectionName}/${item.slug}`);
+        return null;
+    }
+
+    return gulp
+        .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
+        .pipe(data(() => ({
+            ...pageData,
+            lang,
+            article: itemData,
+            collection: collectionName
+        })))
+        .pipe(nunjucksRender({
+            path: [`${paths.src}/templates`],
+            manageEnv: setupNunjucksEnv
+        }))
+        .on('error', notify.onError({
+            title: 'HTML Compilation Error',
+            message: '<%= error.message %>'
+        }))
+        .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+        .pipe(rename({ basename: item.slug }))
+        .pipe(gulp.dest(`${paths.dist}/${lang}/${collectionName}`))
+        .pipe(browserSyncInstance.stream());
+}
+
+// ---------------------------------------------------------------------------
 // htmlTask
 // ---------------------------------------------------------------------------
 
-export const htmlTask = (languages, isProd) => {
-    const paths = PATHS();
+/**
+ * @typedef {Object} BuildFilter
+ * @property {string|null} [lang]        - Only rebuild this language. null = all.
+ * @property {string}      [collection]  - Only rebuild this collection.
+ * @property {string}      [slug]        - Only rebuild this item slug.
+ */
+
+/**
+ * @param {string[]}    languages
+ * @param {boolean}     isProd
+ * @param {BuildFilter} [filter={}]
+ * @returns {NodeJS.ReadWriteStream}
+ */
+export const htmlTask = (languages, isProd, filter = {}) => {
+    const paths   = PATHS();
     const streams = [];
 
-    for (const lang of languages) {
+    // Determine which languages to rebuild
+    const langsToRebuild = filter.lang
+        ? languages.filter(l => l === filter.lang)
+        : languages;
+
+    if (filter.lang && langsToRebuild.length === 0) {
+        console.warn(`No language found matching filter: "${filter.lang}"`);
+    }
+
+    for (const lang of langsToRebuild) {
         const pageData = loadPageData(lang);
 
-        // --------------------
-        // Main pages
-        // --------------------
-        const pagesStream = gulp
-            .src(paths.templates)
-            .pipe(
-                data((file) => {
-                    const filename = file.basename.replace('.html', '');
-                    const page = pageData[filename] || {};
+        // Main pages — skip if filter targets a specific collection item only
+        if (!filter.collection) {
+            streams.push(buildPagesStream(lang, pageData, isProd, paths));
+        }
 
-                    if (isDraft(page, isProd)) {
-                        console.log(`Skipping draft page: ${lang}/${filename}`);
-                        return null;
-                    }
-
-                    console.log(`Building ${lang}/${filename}`);
-                    return { activePage: filename, lang, ...pageData };
-                })
-            )
-            // Filter out files where data() returned null (draft pages)
-            .pipe(
-                through2.obj(function (file, _, cb) {
-                    if (file.data !== null) this.push(file);
-                    cb();
-                })
-            )
-            .pipe(
-                nunjucksRender({
-                    path: [`${paths.src}/templates`],
-                    manageEnv: setupNunjucksEnv
-                })
-            )
-            .on('error', (err) => {
-                console.error(`HTML error (${lang}):`, err.message);
-                process.exitCode = 1;
-            })
-            .on('error', notify.onError({
-                title: 'HTML Compilation Error',
-                message: '<%= error.message %>'
-            }))
-            .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
-            .pipe(gulp.dest(`${paths.dist}/${lang}`))
-            .pipe(browserSyncInstance.stream());
-
-        streams.push(pagesStream);
-
-        // --------------------
         // Collection item pages
-        // --------------------
         for (const [collectionName, { item_template, items }] of Object.entries(Config().collections)) {
+            // Skip collections not matching filter
+            if (filter.collection && filter.collection !== collectionName) continue;
+
             const collectionData = pageData[collectionName];
 
-            // Filter drafts from collection listing so they don't appear in index pages
             if (collectionData?.items) {
                 collectionData.items = filterDraftItems(collectionData.items, isProd);
             }
 
-            for (const item of items) {
+            // Determine which items to rebuild
+            const itemsToRebuild = filter.slug
+                ? items.filter(i => i.slug === filter.slug)
+                : items;
+
+            for (const item of itemsToRebuild) {
                 const itemData = collectionData?.items?.find(i => i.slug === item.slug);
-
-                if (isDraft(itemData, isProd)) {
-                    console.log(`Skipping draft: ${lang}/${collectionName}/${item.slug}`);
-                    continue;
-                }
-
-                const itemStream = gulp
-                    .src(`${paths.src}/templates/${item_template}`, { allowEmpty: true })
-                    .pipe(
-                        data(() => ({
-                            ...pageData,
-                            lang,
-                            article: itemData,
-                            collection: collectionName
-                        }))
-                    )
-                    .pipe(
-                        nunjucksRender({
-                            path: [`${paths.src}/templates`],
-                            manageEnv: setupNunjucksEnv
-                        })
-                    )
-                    .on('error', (err) => {
-                        console.error(
-                            `HTML error (${lang}/${collectionName}/${item.slug}):`,
-                            err.message
-                        );
-                        process.exitCode = 1;
-                    })
-                    .on('error', notify.onError({
-                        title: 'HTML Compilation Error',
-                        message: '<%= error.message %>'
-                    }))
-                    .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
-                    .pipe(rename({ basename: item.slug }))
-                    .pipe(gulp.dest(`${paths.dist}/${lang}/${collectionName}`))
-                    .pipe(browserSyncInstance.stream());
-
-                streams.push(itemStream);
+                const stream   = buildItemStream(
+                    lang, collectionName, item_template,
+                    item, itemData, pageData, isProd, paths
+                );
+                if (stream) streams.push(stream);
             }
         }
     }
 
-    // --------------------
-    // Bundle files (404.html, etc.)
-    // --------------------
-    for (const fileName of Config().bundles) {
-        streams.push(
-            gulp
-                .src(`${paths.src}/${fileName}`)
-                .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
-                .pipe(gulp.dest(paths.dist))
-                .pipe(browserSyncInstance.stream())
-        );
+    // Bundle files — only on full rebuild (no filter active)
+    if (!filter.lang && !filter.collection && !filter.slug) {
+        for (const fileName of Config().bundles) {
+            streams.push(
+                gulp
+                    .src(`${paths.src}/${fileName}`)
+                    .pipe(isProd ? htmlmin(htmlminOptions) : through2.obj())
+                    .pipe(gulp.dest(paths.dist))
+                    .pipe(browserSyncInstance.stream())
+            );
+        }
     }
 
     return merge(...streams);
