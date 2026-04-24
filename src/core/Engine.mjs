@@ -33,18 +33,38 @@ export class PyltraEngine {
      * @param {'dev' | 'prod'} [options.mode]
      */
     constructor( options = {} ) {
-        this.options = options;
+        this.options = {
+            cwd: process.cwd(),
+            mode: 'dev',
+            ...options
+        }
+
+        this.project = null;
+        this.buildManager = null;
+        this.devServer = null;
+    }
+
+    /**
+     * Boostraps the system (lazy init)
+     */
+    async boot() {
+        if(this.project) return;
+
+        this.project = new Project(this.options);
+        this.buildManager = new BuildManager(this.project);
+        this.devServer = new DevServer(this.project, this.buildManager);
     }
 
     /**
      * Initializes a new project (used by CLI init command)
      */
     async init(initOptions) {
-        await this.project.initialize(initOptions);
+        const project = new Project({ cwd: process.cwd() });
+        await project.initialize(initOptions);
     }
 
     /**
-     * Initializes a new project (used by CLI init command)
+     * Load a project 
      */
     async load(initOptions) {
         this.project = new Project(options);
@@ -56,6 +76,7 @@ export class PyltraEngine {
      * Build the project
      */
     async build() {
+        await this.boot();
         await this.project.load();
         await this.buildManager.build();
     }
@@ -64,6 +85,7 @@ export class PyltraEngine {
      * Validates project configuration and structure
      */
     async validate() {
+        await this.boot();
         await this.project.load();
         await this.buildManager.validate();
     }
@@ -72,6 +94,7 @@ export class PyltraEngine {
      * Starts dev server + watchers
      */
     async serve() {
+        await this.boot();
         await this.project.load();
         await this.devServer.start();
     }
