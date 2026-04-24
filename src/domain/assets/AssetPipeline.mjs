@@ -2,7 +2,7 @@
 // 
 // 
 
-class AssetPipeline {
+export class AssetPipeline {
     constructor( project ) {
         this.project = project;
     }

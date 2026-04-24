@@ -15,7 +15,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-class Project {
+export class Project {
     constructor({ cwd = process.cwd(), mode = 'dev' } = {}) {
         this.cwd = cwd;
         this.mode = mode;
@@ -67,7 +67,7 @@ class Project {
     /**
      * Initializes new project (scaffold logic goes here)
      */
-    async initialize(options) {
+    async initialize(options, responses) {
         console.log('Project initialization not implemented in this snippet.');
     }
 }

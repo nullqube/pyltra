@@ -2,7 +2,7 @@
 // 
 // 
 
-class DevServer {
+export class DevServer {
     constructor( project, buildManager ) {
         this.project = project;
         this.buildManager = buildManager;

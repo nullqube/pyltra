@@ -2,7 +2,7 @@
 // 
 // 
 
-class Renderer {
+export class Renderer {
     constructor(project) {
         this.project = project;
         this.templateEngine = new TemplateEngine(project);

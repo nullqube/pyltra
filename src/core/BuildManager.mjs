@@ -14,10 +14,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Renderer } from '../domain/Renderer.js';
-import { AssetPipeline } from '../domain/AssetPipeline.js';
+import { Renderer } from '../domain/rendering/Renderer.mjs';
+import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
 
-class BuildManager {
+export class BuildManager {
     constructor( project ) {
         this.project = project;
 
