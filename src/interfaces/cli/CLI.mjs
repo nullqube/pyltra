@@ -16,12 +16,19 @@
 // It delegates all core functionality to the PyltraEngine class.
 //
 
-import { PyltraEngine } from '../core/Engine.mjs';
+import { Command } from 'commander';
+import prompts from 'prompts';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { PyltraEngine } from '../../core/Engine.mjs';
 
 export class CLI {
 
     constructor() {
-        this.engine = new PyltraEngine();
+        // don't need it here,, because preAction hook always running before
+        // each command get executed...
+        // this.engine = new PyltraEngine();
     }
 
     /**
@@ -41,7 +48,7 @@ export class CLI {
 
         try {
             const packageJson = JSON.parse(
-                fs.readFileSync(join(__dirname, '..', 'package.json'), 'utf8')
+                fs.readFileSync(join(__dirname, '../../..', 'package.json'), 'utf8')
             );
             program
                 .name('pyltra')
@@ -53,18 +60,19 @@ export class CLI {
             process.exit(1);
         }
 
+        program.hook('preAction', (thisCommand) => {
+            const opts = thisCommand.opts();
+
+            this.engine = new PyltraEngine({
+                mode: opts.prod ? 'prod' : 'dev'
+            });
+        });
+
         program
             .command('init')
             .option('-t, --template <template>', 'Template to use', 'basic')
             .description('Initialize a new project')
-            .action(async (options) => {
-                try {
-                    await this.engine.init(options);
-                    console.log('Project initialized successfully!');
-                } catch (err) {
-                    console.error('Error initializing project:', err.message);
-                }
-            });
+            .action(this.init);
 
         program
             .command('validate')
@@ -103,5 +111,51 @@ export class CLI {
             });
 
         program.parse(args);
+    }
+
+    async init(options) {
+        try {
+            const responses = await prompts(
+                [
+                    {
+                        type: 'text',
+                        name: 'projectName',
+                        message: 'Enter the project name:',
+                        validate: value => value.trim().length > 0 ? true : 'Project name is required'
+                    },
+                    {
+                        type: 'text',
+                        name: 'projectDescription',
+                        message: 'Enter the project description:'
+                    },
+                    {
+                        type: 'confirm',
+                        name: 'createReadme',
+                        message: 'Create README.md?',
+                        initial: true
+                    },
+                    {
+                        type: 'confirm',
+                        name: 'createGitignore',
+                        message: 'Create .gitignore?',
+                        initial: true
+                    }
+                ],
+                {
+                    // Treat Ctrl+C as cancellation rather than a hard crash
+                    onCancel: () => {
+                        console.log('\nProject initialization cancelled.');
+                        process.exit(0);
+                    }
+                }
+            );
+
+            console.log(options, responses)
+            return;
+            await this.engine.init(options, responses);
+            console.log('Project initialized successfully!');
+        } catch (err) {
+            console.error('Error initializing project:', err.message);
+        }
     }
 }
