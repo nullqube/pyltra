@@ -58,9 +58,9 @@ export class PyltraEngine {
     /**
      * Initializes a new project (used by CLI init command)
      */
-    async init(initOptions) {
+    async init(initOptions, responses) {
         const project = new Project({ cwd: process.cwd() });
-        await project.initialize(initOptions);
+        await project.initialize(initOptions, responses);
     }
 
     /**

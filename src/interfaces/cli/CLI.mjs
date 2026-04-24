@@ -29,6 +29,7 @@ export class CLI {
         // don't need it here,, because preAction hook always running before
         // each command get executed...
         // this.engine = new PyltraEngine();
+        this.engine = null;
     }
 
     /**
@@ -72,7 +73,7 @@ export class CLI {
             .command('init')
             .option('-t, --template <template>', 'Template to use', 'basic')
             .description('Initialize a new project')
-            .action(this.init);
+            .action(this.init.bind(this));
 
         program
             .command('validate')
@@ -114,7 +115,7 @@ export class CLI {
     }
 
     async init(options) {
-        try {
+        // try {
             const responses = await prompts(
                 [
                     {
@@ -150,12 +151,10 @@ export class CLI {
                 }
             );
 
-            console.log(options, responses)
-            return;
             await this.engine.init(options, responses);
             console.log('Project initialized successfully!');
-        } catch (err) {
-            console.error('Error initializing project:', err.message);
-        }
+        // } catch (err) {
+        //     console.error('Error initializing project:', err.message);
+        // }
     }
 }

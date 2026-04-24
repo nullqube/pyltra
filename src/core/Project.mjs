@@ -15,6 +15,8 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs'
+
 export class Project {
     constructor({ cwd = process.cwd(), mode = 'dev' } = {}) {
         this.cwd = cwd;
@@ -68,6 +70,7 @@ export class Project {
      * Initializes new project (scaffold logic goes here)
      */
     async initialize(options, responses) {
-        console.log('Project initialization not implemented in this snippet.');
+        // console.log('Project initialization not implemented in this snippet.');
+        new ProjectScaffolder().scaffold(options, responses);
     }
 }
