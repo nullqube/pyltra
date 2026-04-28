@@ -20,7 +20,8 @@ export class Project {
         this.cwd = cwd;
         this.mode = mode;
         this.configLoader = new ConfigLoader(cwd);
-
+        this.configLoader.setIsProd( mode != 'dev' );
+        
         /** @type {SiteConfig|null} */
         this.config = null;
 
@@ -32,7 +33,6 @@ export class Project {
      * Loads config.yaml and derives paths.
      */
     load() {
-        this.configLoader.setIsProd( mode != 'dev' );
         this.config = this.configLoader.load();
         this.paths = this.configLoader.getPaths();
     }
