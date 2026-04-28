@@ -42,42 +42,47 @@ export class PyltraEngine {
         this.project = null;
         this.buildManager = null;
         this.devServer = null;
+
+        this._booted = false;
+        this._loaded = false;
     }
 
     /**
      * Boostraps the system (lazy init)
      */
     async boot() {
-        if(this.project) return;
+        if(this._booted) return;
 
         this.project = new Project(this.options);
         this.buildManager = new BuildManager(this.project);
         this.devServer = new DevServer(this.project, this.buildManager);
+
+        this._booted = true;
+    }
+
+    /**
+     * Load a project 
+     */
+    async load() {
+        await this.boot();
+        if(this._loaded) return;
+        await this.project.load();
+        this._loaded = true;
     }
 
     /**
      * Initializes a new project (used by CLI init command)
      */
     async init(initOptions, responses) {
-        const project = new Project({ cwd: process.cwd() });
+        const project = new Project({ cwd: process.cwd(), mode: this.options.mode });
         await project.initialize(initOptions, responses);
-    }
-
-    /**
-     * Load a project 
-     */
-    async load(initOptions) {
-        this.project = new Project(options);
-        this.buildManager = new BuildManager(this.project);
-        this.devServer = new DevServer(this.project, this.buildManager);
     }
 
     /**
      * Build the project
      */
     async build() {
-        await this.boot();
-        await this.project.load();
+        await this.load();
         await this.buildManager.build();
     }
 
@@ -85,8 +90,7 @@ export class PyltraEngine {
      * Validates project configuration and structure
      */
     async validate() {
-        await this.boot();
-        await this.project.load();
+        await this.load();
         await this.buildManager.validate();
     }
 
@@ -94,8 +98,7 @@ export class PyltraEngine {
      * Starts dev server + watchers
      */
     async serve() {
-        await this.boot();
-        await this.project.load();
+        await this.load();
         await this.devServer.start();
     }
 }
