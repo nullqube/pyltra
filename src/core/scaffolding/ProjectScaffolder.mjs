@@ -13,7 +13,7 @@ export class ProjectScaffolder {
         // any dependencies can be injected here
     }
 
-    async scaffold(options, responses) {
+    static async create(options, responses) {
         // 1. Create project directory
         // 2. Create config file (pyltra.yaml)
         // 3. Create content directory with sample content

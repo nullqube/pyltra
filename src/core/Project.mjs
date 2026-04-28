@@ -42,7 +42,7 @@ export class Project {
      */
     async initialize(options, responses) {
         // console.log('Project initialization not implemented in this snippet.');
-        new ProjectScaffolder().scaffold(options, responses);
+        await ProjectScaffolder.create(options, responses);
     }
 
     /**
