@@ -12,58 +12,29 @@
  * This removes global singletons and hidden state.
  */
 
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
 import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs'
 
 export class Project {
     constructor({ cwd = process.cwd(), mode = 'dev' } = {}) {
         this.cwd = cwd;
         this.mode = mode;
+        this.configLoader = new ConfigLoader(cwd);
+
+        /** @type {SiteConfig|null} */
         this.config = null;
+
+        /** @type {PathsConfig|null} */
         this.paths = null;
-        // this.configLoader = new ConfigLoader(cwd);
     }
 
     /**
      * Loads config.yaml and derives paths.
      */
     load() {
-        const configPath = path.join(this.cwd, 'config.yaml');
-
-        if( !fs.existsSync(configPath)) {
-            throw new Error('config.yaml not found in project root.')
-        }
-
-        const raw = yaml.load(fs.readFileSync(configPath, 'utf8'));
-
-        // TODO: use configloader feature or it as seperate class
-        // including different versions
-        this.config = raw;
-
-        // this.config = this.configLoader.load();
-        // this.paths = this.configLoader.getPaths();
-        this.paths = {
-            src: 'src',
-            dist: 'dist',
-            data: 'src/data',
-            templates: 'src/templates'
-        };
-    }
-
-    /**
-     * Returns language codes.
-     */
-    languages() {
-        return this.config.languages.map( l => l.code );
-    }
-    
-    /**
-     * Returns true if running in production mode.
-     */
-    isProd() {
-        return this.mode == 'prod';
+        this.configLoader.setIsProd( mode != 'dev' );
+        this.config = this.configLoader.load();
+        this.paths = this.configLoader.getPaths();
     }
 
     /**
@@ -72,5 +43,42 @@ export class Project {
     async initialize(options, responses) {
         // console.log('Project initialization not implemented in this snippet.');
         new ProjectScaffolder().scaffold(options, responses);
+    }
+
+    /**
+     * return the pages of the project
+     */
+    pages() {
+        return this.config.pages;
+    }
+
+    /** @returns {SiteConfig} */
+    getConfig() {
+        if (!this.config) {
+            throw new Error('Project not loaded. Call project.load() first.');
+        }
+        return this.config;
+    }
+
+    /** @returns {PathsConfig} */
+    getPaths() {
+        if (!this.paths) {
+            throw new Error('Project not loaded. Call project.load() first.');
+        }
+        return this.paths;
+    }
+
+    /** 
+     * Returns language codes.
+     * @returns {string[]} */
+    getLanguages() {
+        return this.getConfig().languages.map(l => l.code);
+    }
+
+    /**
+     * Returns true if running in production mode. 
+     * @returns {boolean} */
+    getIsProd() {
+        return this.isProd;
     }
 }
