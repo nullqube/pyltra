@@ -11,5 +11,9 @@ export const CONFIG_DEFAULTS = {
     pages:       {},
     collections: {},
     bundles:     [],
-    paths:       {}
+    paths:       {
+        src: 'src',
+        dist: 'dist',
+        data: 'src/data'
+    }
 };
