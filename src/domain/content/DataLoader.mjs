@@ -1,7 +1,13 @@
 //
-//
-//
+// DataLoader
+// ----------
+// Loads YAML data files for given language.
+// 
 
+import { join } from 'path';
+import yaml from 'js-yaml';
+import matter from 'gray-matter';
+import { marked } from 'marked';
 export class DataLoader {
 
     constructor(project) {
@@ -56,10 +62,10 @@ export class DataLoader {
      * @returns {Object}
      */
     loadCollectionsData(lang, cwd) {
-        const dataDir = PATHS().data;
+        const dataDir = this.project.getPaths().data;
         const result  = [];
     
-        for (const [collectionName, { dataFile, items }] of Object.entries(Config().collections)) {
+        for (const [collectionName, { dataFile, items }] of Object.entries(this.project.getConfig().collections)) {
             const collectionFileName = dataFile.replace('${lang}', lang);
             const collectionFilePath = join(cwd, dataDir, collectionFileName);
     
@@ -105,12 +111,12 @@ export class DataLoader {
             return this.pageDataCache.get(lang);
         }
     
-        const dataDir = PATHS().data;
-        const result  = [{ langs: Config().languages }];
+        const dataDir = this.project.getPaths().data;
+        const result  = [{ langs: this.project.getConfig().languages }];
     
         console.log(`Loading data for "${lang}"...`);
     
-        for (const [key, value] of Object.entries(Config().pages)) {
+        for (const [key, value] of Object.entries(this.project.getConfig().pages)) {
             const { file = '', fallback = {} } = value ?? {};
             const fileName = file ? file.replace('${lang}', lang) : `${lang}/${key}.yaml`;
             const filePath = join(cwd, dataDir, fileName);
