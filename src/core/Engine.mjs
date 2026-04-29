@@ -101,4 +101,12 @@ export class PyltraEngine {
         await this.load();
         await this.devServer.start();
     }
+
+    /**
+     * Cleans output directory
+     */
+    async clean() {
+        await this.load();
+        await this.buildManager.clean();
+    }
 }
