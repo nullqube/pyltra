@@ -6,7 +6,7 @@
  * Holds:
  * - cwd
  * - mode
- * - loaded config
+ * - Loads and exposes config
  * - derived paths
  *
  * This removes global singletons and hidden state.
@@ -19,14 +19,19 @@ export class Project {
     constructor({ cwd = process.cwd(), mode = 'dev' } = {}) {
         this.cwd = cwd;
         this.mode = mode;
+        /** @type {boolean} */
+        this.isProd = mode !== 'dev';
         this.configLoader = new ConfigLoader(cwd);
-        this.configLoader.setIsProd( mode != 'dev' );
-        
+        this.configLoader.setIsProd( this.isProd );
+
         /** @type {SiteConfig|null} */
         this.config = null;
 
         /** @type {PathsConfig|null} */
         this.paths = null;
+
+        /** @type {DataLoader|null} */
+        this.data = null;
     }
 
     /**
@@ -35,6 +40,9 @@ export class Project {
     load() {
         this.config = this.configLoader.load();
         this.paths = this.configLoader.getPaths();
+
+        // Initialize runtime services
+        this.data = new DataLoader({ project: this });
     }
 
     /**
@@ -43,13 +51,6 @@ export class Project {
     async initialize(options, responses) {
         // console.log('Project initialization not implemented in this snippet.');
         await ProjectScaffolder.create(options, responses);
-    }
-
-    /**
-     * return the pages of the project
-     */
-    pages() {
-        return this.config.pages;
     }
 
     /** @returns {SiteConfig} */
@@ -68,6 +69,14 @@ export class Project {
         return this.paths;
     }
 
+    /** @returns {DataLoader} */
+    getData() {
+        if (!this.data) {
+            throw new Error('Project not loaded. Call project.load() first.');
+        }
+        return this.data;
+    }
+    
     /** 
      * Returns language codes.
      * @returns {string[]} */
