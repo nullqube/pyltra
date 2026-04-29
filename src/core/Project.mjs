@@ -21,8 +21,7 @@ export class Project {
         this.mode = mode;
         /** @type {boolean} */
         this.isProd = mode !== 'dev';
-        this.configLoader = new ConfigLoader(cwd);
-        this.configLoader.setIsProd( this.isProd );
+        this.configLoader = new ConfigLoader(cwd, this.isProd);
 
         /** @type {SiteConfig|null} */
         this.config = null;
@@ -76,7 +75,7 @@ export class Project {
         }
         return this.data;
     }
-    
+
     /** 
      * Returns language codes.
      * @returns {string[]} */

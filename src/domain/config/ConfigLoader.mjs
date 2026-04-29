@@ -10,7 +10,7 @@ import { CONFIG_DEFAULTS } from './defaults.mjs';
 import { validateConfig, mergeWithDefaults, buildPaths } from './helpers.js';
 
 export class ConfigLoader {
-    constructor({ cwd = process.cwd() } = {}) {
+    constructor({ cwd = process.cwd(), isProd = false } = {}) {
         this.cwd = cwd;
 
         /** @type {SiteConfig|null} */
@@ -18,7 +18,7 @@ export class ConfigLoader {
         /** @type {PathsConfig|null} */
         this._paths = null;
         /** @type {boolean} */
-        this._isProd = false;
+        this._isProd = isProd;
     }
 
     /** @param {boolean} value */
