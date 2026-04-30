@@ -58,23 +58,22 @@ export class DataLoader {
 
     /**
      * @param {string} lang
-     * @param {string} cwd
      * @returns {Object}
      */
-    loadCollectionsData(lang, cwd) {
+    loadCollectionsData(lang) {
         const dataDir = this.project.getPaths().data;
         const result  = [];
     
         for (const [collectionName, { dataFile, items }] of Object.entries(this.project.getConfig().collections)) {
             const collectionFileName = dataFile.replace('${lang}', lang);
-            const collectionFilePath = join(cwd, dataDir, collectionFileName);
+            const collectionFilePath = join(this.project.cwd, dataDir, collectionFileName);
     
             try {
                 const collectionData = yaml.load(readFileSync(collectionFilePath, 'utf8'));
     
                 const itemsData = items.map(item => {
                     const itemFileName = item.file.replace('${lang}', lang);
-                    const itemFilePath = join(cwd, dataDir, itemFileName);
+                    const itemFilePath = join(this.project.cwd, dataDir, itemFileName);
                     const fileExt      = itemFileName.split('.').pop();
     
                     try {
@@ -102,10 +101,9 @@ export class DataLoader {
      * Loads and merges all page data for a given language.
      * Results are cached — call invalidateCache(lang) before rebuilding on watch.
      * @param {string} lang
-     * @param {string} [cwd]
      * @returns {Object}
      */
-    loadPageData(lang, cwd = process.cwd()) {
+    loadPageData(lang) {
         if (this.pageDataCache.has(lang)) {
             console.log(`Using cached data for "${lang}"`);
             return this.pageDataCache.get(lang);
@@ -119,7 +117,7 @@ export class DataLoader {
         for (const [key, value] of Object.entries(this.project.getConfig().pages)) {
             const { file = '', fallback = {} } = value ?? {};
             const fileName = file ? file.replace('${lang}', lang) : `${lang}/${key}.yaml`;
-            const filePath = join(cwd, dataDir, fileName);
+            const filePath = join(this.project.cwd, dataDir, fileName);
     
             try {
                 const loaded = yaml.load(readFileSync(filePath, 'utf8'));
@@ -132,7 +130,7 @@ export class DataLoader {
             }
         }
     
-        const collections = loadCollectionsData(lang, cwd);
+        const collections = loadCollectionsData(lang, this.project.cwd);
         if (Object.keys(collections).length > 0) {
             result.push(collections);
         }
