@@ -41,6 +41,36 @@ export class DataLoader {
     }
 
     /**
+     * Public API
+     * Loads and merges all page data for a given language.
+     * Results are cached — call invalidateCache(lang) before rebuilding on watch.
+     * @param {string} lang
+     * @returns {Object}
+     */
+    loadPageData(lang) {
+        if (this.pageDataCache.has(lang)) {
+            console.log(`Using cached data for "${lang}"`);
+            return this.pageDataCache.get(lang);
+        }
+    
+        const result  = [{ langs: this.project.getConfig().languages }];
+    
+        console.log(`Loading data for "${lang}"...`);
+        // Pages
+        result.push( this._loadPages(lang) );
+    
+        // Collections
+        const collections = this._loadCollectionsData(lang, this.project.cwd);
+        if (Object.keys(collections).length > 0) {
+            result.push(collections);
+        }
+    
+        const pageData = Object.assign({}, ...result);
+        this.pageDataCache.set(lang, pageData);
+        return pageData;
+    }
+
+    /**
      * Content loaders
      * @param {string} fileContent
      * @param {'md'|'json'|'yaml'} fileType
@@ -60,7 +90,7 @@ export class DataLoader {
      * @param {string} lang
      * @returns {Object}
      */
-    loadCollectionsData(lang) {
+    _loadCollectionsData(lang) {
         const dataDir = this.project.getPaths().data;
         const result  = [];
     
@@ -97,23 +127,10 @@ export class DataLoader {
         return Object.assign({}, ...result);
     }
 
-    /**
-     * Loads and merges all page data for a given language.
-     * Results are cached — call invalidateCache(lang) before rebuilding on watch.
-     * @param {string} lang
-     * @returns {Object}
-     */
-    loadPageData(lang) {
-        if (this.pageDataCache.has(lang)) {
-            console.log(`Using cached data for "${lang}"`);
-            return this.pageDataCache.get(lang);
-        }
-    
+    _loadPages(lang) {
         const dataDir = this.project.getPaths().data;
-        const result  = [{ langs: this.project.getConfig().languages }];
-    
-        console.log(`Loading data for "${lang}"...`);
-    
+        const result = [];
+
         for (const [key, value] of Object.entries(this.project.getConfig().pages)) {
             const { file = '', fallback = {} } = value ?? {};
             const fileName = file ? file.replace('${lang}', lang) : `${lang}/${key}.yaml`;
@@ -124,19 +141,10 @@ export class DataLoader {
                 console.log(`  Loaded ${fileName}`);
                 result.push(key === 'shared' ? (loaded[lang] || fallback) : { [key]: loaded });
             } catch (e) {
-                // console.warn(`Warning: Missing or invalid "${fileName}" for lang "${lang}"`);
-                // console.warn(`  → ${e.message}`);
                 result.push({ [key]: fallback });
             }
         }
-    
-        const collections = loadCollectionsData(lang, this.project.cwd);
-        if (Object.keys(collections).length > 0) {
-            result.push(collections);
-        }
-    
-        const pageData = Object.assign({}, ...result);
-        this.pageDataCache.set(lang, pageData);
-        return pageData;
+
+        return Object.assign({}, ...result);
     }
 }
