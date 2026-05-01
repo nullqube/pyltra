@@ -21,6 +21,8 @@ import prompts from 'prompts';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
+import { resolveProjectRoot } from '../core/resolver/rootResolver.mjs';
 import { PyltraEngine } from '../../core/Engine.mjs';
 
 export class CLI {
@@ -63,8 +65,9 @@ export class CLI {
 
         program.hook('preAction', (thisCommand) => {
             const opts = thisCommand.opts();
-
+            const root = resolveProjectRoot();
             this.engine = new PyltraEngine({
+                cwd: root,
                 mode: opts.prod ? 'prod' : 'dev'
             });
         });
