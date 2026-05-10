@@ -14,7 +14,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Renderer } from '../domain/rendering/Renderer.mjs';
+import ConfigValidator from '../domain/config/ConfigValidator.mjs';
+import { Renderer } from '../renderer/Renderer.mjs';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
 
 export class BuildManager {

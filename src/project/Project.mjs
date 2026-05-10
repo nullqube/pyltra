@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { DataLoader } from '../data/DataLoader.mjs';
 import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
 
 const DEVELOPMENT_MODE = 'development';
@@ -73,6 +74,9 @@ export class Project {
         /** @type {PathsConfig|null} */
         this.paths = null;
 
+        /** @type {DataLoader|null} */
+        this.data = null;
+
         this._loaded = false;
         this._metadata = null;
     }
@@ -92,6 +96,7 @@ export class Project {
 
         this.config = this.configLoader.load();
         this.paths = this.configLoader.getPaths();
+        this.data = new DataLoader(this);
         this._metadata = this._buildMetadata();
         this._loaded = true;
 
@@ -189,6 +194,25 @@ export class Project {
     getLanguages() {
         this._assertLoaded();
         return this.config.languages.map(language => language.code);
+    }
+
+    /**
+     * Returns the Project-owned data loader.
+     *
+     * @returns {DataLoader}
+     */
+    getData() {
+        this._assertLoaded();
+        return this.data;
+    }
+
+    /**
+     * Alias with a more explicit v2 name.
+     *
+     * @returns {DataLoader}
+     */
+    getDataLoader() {
+        return this.getData();
     }
 
     /**
