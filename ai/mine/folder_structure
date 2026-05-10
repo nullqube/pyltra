@@ -1,0 +1,199 @@
+Yes. Use **versioned structures**, not one final structure from day one.
+
+## v2 — OOP rewrite, same behavior, Gulp still allowed
+
+```text
+pyltra/
+├── bin/
+│   └── cli.js
+├── src/
+│   ├── core/
+│   │   └── PyltraEngine.mjs
+│   ├── project/
+│   │   ├── Project.mjs
+│   │   ├── ConfigLoader.mjs
+│   │   ├── ProjectPaths.mjs
+│   │   └── ProjectMode.mjs
+│   ├── data/
+│   │   ├── DataLoader.mjs
+│   │   ├── PageDataLoader.mjs
+│   │   ├── CollectionDataLoader.mjs
+│   │   └── ContentParser.mjs
+│   ├── renderer/
+│   │   ├── Renderer.mjs
+│   │   ├── NunjucksEnvironment.mjs
+│   │   └── TemplateFilters.mjs
+│   ├── tasks/
+│   │   ├── HtmlTask.mjs
+│   │   ├── ScssTask.mjs
+│   │   ├── AssetsTask.mjs
+│   │   ├── ServeTask.mjs
+│   │   └── InitTask.mjs
+│   ├── cli/
+│   │   └── CLI.mjs
+│   └── utils/
+│       ├── handleError.mjs
+│       └── helpers.mjs
+```
+
+Goal: **same features, cleaner ownership**.
+
+---
+
+## v2.1 — Drop Gulp, own build systems
+
+```text
+src/
+├── core/
+│   ├── PyltraEngine.mjs
+│   └── BuildRunner.mjs
+├── project/
+├── data/
+├── renderer/
+├── builders/
+│   ├── HtmlBuilder.mjs
+│   ├── ScssBuilder.mjs
+│   ├── AssetBuilder.mjs
+│   ├── BundleBuilder.mjs
+│   └── CleanBuilder.mjs
+├── dev/
+│   ├── DevServer.mjs
+│   └── Watcher.mjs
+├── cli/
+└── utils/
+    ├── Logger.mjs
+    ├── ConfigValidator.mjs
+    ├── FileSystem.mjs
+    ├── Diagnostics.mjs
+    └── Errors.mjs
+```
+
+Goal: **remove Gulp, keep old behavior**.
+
+---
+
+## v2.2 — Stable production v2
+
+```text
+src/
+├── core/
+│   ├── PyltraEngine.mjs
+│   ├── BuildRunner.mjs
+│   └── RuntimeContext.mjs
+├── project/
+│   ├── Project.mjs
+│   ├── ProjectRegistry.mjs
+│   ├── ConfigLoader.mjs
+│   ├── ProjectPaths.mjs
+│   └── ProjectMode.mjs
+├── data/
+├── renderer/
+├── builders/
+├── dev/
+├── validation/
+│   ├── ProjectValidator.mjs
+│   ├── ConfigValidator.mjs
+│   ├── DataValidator.mjs
+│   └── TemplateValidator.mjs
+├── commands/
+│   ├── BuildCommand.mjs
+│   ├── ServeCommand.mjs
+│   ├── InitCommand.mjs
+│   ├── AddCommand.mjs
+│   └── ValidateCommand.mjs
+├── cli/
+└── utils/
+```
+
+Goal: **real v2 release structure**.
+
+---
+
+## v3 — Internal graph/node architecture
+
+```text
+src/
+├── app/
+│   └── Pyltra.mjs
+├── project/
+│   ├── Project.mjs
+│   ├── ProjectContext.mjs
+│   └── ProjectConfig.mjs
+├── graph/
+│   ├── Graph.mjs
+│   ├── Node.mjs
+│   ├── Edge.mjs
+│   ├── GraphQuery.mjs
+│   └── GraphIndex.mjs
+├── adapters/
+│   └── filesystem/
+│       ├── FilesystemAdapter.mjs
+│       ├── ConfigSource.mjs
+│       ├── ContentSource.mjs
+│       ├── TemplateSource.mjs
+│       └── AssetSource.mjs
+├── systems/
+│   ├── content/
+│   ├── render/
+│   ├── build/
+│   ├── validate/
+│   └── dev/
+├── engine/
+│   ├── Engine.mjs
+│   ├── Pipeline.mjs
+│   └── Runtime.mjs
+├── commands/
+├── cli/
+└── utils/
+```
+
+Goal: **filesystem becomes one adapter; Project becomes graph-backed**.
+
+---
+
+## v4 — Plugins, events, pipelines, UI-ready
+
+```text
+src/
+├── app/
+│   ├── Pyltra.mjs
+│   ├── ServiceContainer.mjs
+│   └── Runtime.mjs
+├── project/
+├── graph/
+├── adapters/
+│   ├── filesystem/
+│   ├── database/
+│   ├── api/
+│   └── cms/
+├── systems/
+│   ├── content/
+│   ├── render/
+│   ├── build/
+│   ├── validate/
+│   ├── dev/
+│   └── query/
+├── pipeline/
+│   ├── Pipeline.mjs
+│   ├── PipelineStep.mjs
+│   └── PipelineRunner.mjs
+├── events/
+│   ├── EventBus.mjs
+│   └── Events.mjs
+├── plugins/
+│   ├── PluginSystem.mjs
+│   ├── PluginLoader.mjs
+│   ├── PluginAPI.mjs
+│   └── HookSystem.mjs
+├── cli/
+├── ui/
+│   ├── server/
+│   └── graph-inspector/
+└── utils/
+```
+
+Goal: **Pyltra becomes a content runtime platform**.
+
+---
+
+My recommendation: build only **v2 first**, but keep the names close enough that migration to v3 is natural.
