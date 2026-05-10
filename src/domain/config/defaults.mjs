@@ -7,13 +7,18 @@
 
 /** @type {SiteConfig} */
 export const CONFIG_DEFAULTS = {
-    languages:   [],
+    site: {
+        title: 'Pyltra Site'
+    },
+    languages:   [
+        { code: 'en', name: 'English' }
+    ],
     pages:       {},
     collections: {},
-    bundles:     [],
     paths:       {
         src: 'src',
         dist: 'dist',
         data: 'src/data'
-    }
+    },
+    bundles:     []
 };
