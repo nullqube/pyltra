@@ -21,9 +21,10 @@
 // It delegates everything to lower layers.
 //
 
-import { Project } from './Project.mjs';
+import { Project } from '../project/Project.mjs';
 import { BuildManager } from './BuildManager.mjs';
 import { DevServer } from './DevServer.mjs';
+import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 
 export class PyltraEngine {
 
@@ -35,7 +36,7 @@ export class PyltraEngine {
     constructor( options = {} ) {
         this.options = {
             cwd: process.cwd(),
-            mode: 'dev',
+            mode: 'development',
             ...options
         }
 
@@ -74,9 +75,7 @@ export class PyltraEngine {
      * Initializes a new project (used by CLI init command)
      */
     async init(initOptions, responses) {
-        // TODO: should we use this.project or a local instance.
-        const project = new Project({ cwd: process.cwd(), mode: this.options.mode });
-        await project.initialize(initOptions, responses);
+        await ProjectScaffolder.create(initOptions, responses);
     }
 
     /**
