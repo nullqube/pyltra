@@ -102,11 +102,6 @@ export class ConfigLoader {
         this._config = this._normalizeConfig(mergeWithDefaults(CONFIG_DEFAULTS, raw));
         this._paths = buildPaths(this._config);
 
-        this._config.paths = {
-            ...(this._config.paths || {}),
-            ...this._paths
-        };
-
         return this._config;
     }
 
