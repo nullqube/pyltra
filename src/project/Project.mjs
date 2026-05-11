@@ -63,6 +63,7 @@ export class Project {
         this.mode = mode;
         this.isProd = mode === PRODUCTION_MODE;
 
+        // We now support custom injected loaders
         this.configLoader = options.configLoader || new ConfigLoader({
             cwd: this.root,
             isProd: this.isProd
@@ -90,6 +91,10 @@ export class Project {
     async load() {
         if (this._loaded) return this;
 
+        // Since we support custom loader we need to be sure if they
+        // have the function.
+        // It syncs the Project mode into the ConfigLoader right before loading,
+        // cause the custom loader constructor been called cefore our load() stage.
         if (typeof this.configLoader.setIsProd === 'function') {
             this.configLoader.setIsProd(this.isProd);
         }
