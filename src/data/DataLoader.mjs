@@ -95,16 +95,6 @@ export class DataLoader {
     }
 
     /**
-     * Backward-compatible name for the old modular data API.
-     *
-     * @param {string} lang
-     * @returns {Object}
-     */
-    loadPageData(lang) {
-        return this.load(lang);
-    }
-
-    /**
      * Clears cached data for a specific language, or all languages if omitted.
      *
      * @param {string} [lang]
