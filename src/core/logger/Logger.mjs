@@ -19,6 +19,20 @@
  * - depth: current nesting depth (0 = root)
  * - groupId: unique group identifier for hierarchical tracking
  * - parentId: parent group ID (for future use)
+ * 
+ * 
+ * sample usage:
+ * const runtime = Runtime.fromCLI(options);
+ *
+ * const logger = new Logger({
+ *   runtime,
+ *   transports: [
+ *     new ConsoleTransport({ runtime }),
+ *     new FileTransport({ runtime }),
+ *   ],
+ * });
+ *
+ * runtime.setLogger(logger);
  */
 import { RuntimeAware } from "../runtime/RuntimeAware.mjs";
 import { TransportManager } from "./TransportManager.mjs";
