@@ -54,6 +54,11 @@ export class Logger extends RuntimeAware {
         super({ runtime });
 
         this.prefix = prefix;
+		// For future use when implementing log level filtering.
+		// this.level will represent the minimum log level to emit (e.g., "info" would emit "info", "warn", "error", but not "debug").
+		// For now, all events are emitted regardless of level, and filtering can be handled by transports or the runtime configuration.
+		// this.level = level is reserved for future log level filtering logic. Currently, all levels are emitted and transports can decide how to handle them.
+		// In the future, we may implement logic in emit() to check this.level against the event level and skip emitting if the event level is below the configured threshold.
         this.level = level;
 
         // Temporary compatibility until real hierarchy metadata exists.
