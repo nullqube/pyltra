@@ -32,22 +32,23 @@ export class RuntimeAware {
         this.logger = runtime.logger;
 
         // ---------------------------------------------------------------------
-        // Cached Runtime State
-        // ---------------------------------------------------------------------
-
-        this.environment = runtime.environment;
-        this.command = runtime.command;
-
-        // ---------------------------------------------------------------------
         // Optional internal timings
         // ---------------------------------------------------------------------
 
         this.createdAt = Date.now();
     }
 
+    get command() {
+        return this.runtime.command;
+    }
+    
     // -------------------------------------------------------------------------
     // Environment
     // -------------------------------------------------------------------------
+
+    get environment() {
+        return this.runtime.environment;
+    }
 
     get isDevelopment() {
         return this.runtime.isDevelopment;
