@@ -36,6 +36,7 @@ export class Runtime {
         environment = "development",
         command = null,
         logger = null,
+        reporter = null,
         debug = false,
         verbose = false,
         silent = false,
@@ -48,6 +49,7 @@ export class Runtime {
         this.environment = environment;
         this.command = command;
         this.logger = logger;
+        this.reporter = reporter;
         this.debug = debug;
         this.verbose = verbose;
         this.silent = silent;
@@ -57,11 +59,21 @@ export class Runtime {
         this.version = version;
         this.startTime = startTime;
     }
-    
+
+    setLogger(logger) {
+        this.logger = logger;
+        return this;
+    }
+
+    setReporter(reporter) {
+        this.reporter = reporter;
+        return this;
+    }
+
     // ---------------------------------------------------------------------------
     // Environment
     // ---------------------------------------------------------------------------
-
+    
     get isDevelopment() {
         return this.environment === "development";
     }
@@ -103,7 +115,7 @@ export class Runtime {
     }
 
     get isInteractive() {
-        return this.interactive;
+        return this.interactive && !this.ci;
     }
 
     get isCI() {
@@ -153,6 +165,7 @@ export class Runtime {
             interactive: process.stdout.isTTY,
             version: options.version,
             logger: options.logger,
+            reporter: options.reporter,
         });
     }
 }
