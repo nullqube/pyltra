@@ -5,6 +5,23 @@ Document Role: Architecture Decision Record
 Stability: CONFIRMED
 
 ---
+# ADR-000 — QUALITY IS WHAT I BELEIVE AND CARE MOST ABOUT
+
+Status: CONFIRMED
+
+## Decision
+
+Quality of each peace must be on highest possible.
+
+## Rationale
+
+Each peace and the whole app should be ready for any situation and battle proof.
+
+## Consequences
+
+-
+
+---
 
 # ADR-001 — Pyltra Is Local-First
 
