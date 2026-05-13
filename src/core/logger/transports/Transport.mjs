@@ -4,7 +4,7 @@
  * Base contract for logger transports. Concrete transport classes should
  */
 
-import { RuntimeAware } from "../runtime/RuntimeAware.mjs";
+import { RuntimeAware } from "../../runtime/RuntimeAware.mjs";
 
 export class Transport extends RuntimeAware {
     constructor({
