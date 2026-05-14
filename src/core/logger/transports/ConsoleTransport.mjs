@@ -7,78 +7,102 @@
  */
 
 import { Transport } from "./transport.mjs";
+import chalk from "chalk";
 
-const COLORS = {
-	debug: "\x1b[90m",
-	info: "\x1b[36m",
-	warn: "\x1b[33m",
-	error: "\x1b[31m",
-	reset: "\x1b[0m",
-};
-
-const DEFAULT_INDENT_WIDTH = 2; // Means 2 spaces per indent level
 export class ConsoleTransport extends Transport {
-	/**
-	 * @param {Object} [options]
-	 * @param {boolean} [options.pretty=true]
-	 * @param {boolean} [options.colors=true]
-	 */
-	constructor(options = {}) {
-		super();
-		this.pretty = options.pretty ?? true;
-		this.colors = options.colors ?? true;
-	}
+    constructor(options = {}) {
+        super(options);
 
-	/**
-	 * Render a single event as a human-readable console line.
-	 * @param {Object} event
-	 * @returns {string}
-	 */
-	formatPretty(event) {
-		const indent = " ".repeat((event.indent || 0) * DEFAULT_INDENT_WIDTH);
-		const color = this.colors ? COLORS[event.level] : "";
-		const reset = this.colors ? COLORS.reset : "";
-		const prefix = event.prefix ? ` ${event.prefix} →` : "";
+        this.useColors = options.useColors ?? true;
+        this.timestamp = options.timestamp ?? false;
+    }
 
-		let line = `${indent}${color}${event.level.toUpperCase()}${reset}${prefix} ${event.message}`;
+    write(event) {
+        const line = this.format(event);
+
+        process.stdout.write(line + "\n");
+    }
+
+    format(event) {
+        const parts = [];
+
+        // ---------------------------------------------------------------------
+        // Timestamp
+        // ---------------------------------------------------------------------
+
+        if (this.timestamp) {
+            parts.push(
+                chalk.dim(`[${this.formatTime(event.time)}]`)
+            );
+        }
+
+        // ---------------------------------------------------------------------
+        // Level
+        // ---------------------------------------------------------------------
+
+        parts.push(this.formatLevel(event.level));
+
+        // ---------------------------------------------------------------------
+        // Prefix
+        // ---------------------------------------------------------------------
+
+        if (event.prefix) {
+            parts.push(
+                chalk.cyan(`[${event.prefix}]`)
+            );
+        }
+
+		// ---------------------------------------------------------------------
+		// Meta
+		// ---------------------------------------------------------------------	
 
 		if (event.meta && Object.keys(event.meta).length) {
-			line += ` ${JSON.stringify(event.meta)}`;
+			parts.push(` ${JSON.stringify(event.meta)}`);
+			// Later we can add options for pretty-printing meta objects, 
+			// but for now we'll just append a JSON string of the meta data if it exists.
+			// In the future, we may want to implement a more sophisticated way of including 
+			// meta data in the console output, such as pretty-printing objects or allowing 
+			// certain meta fields to be highlighted or formatted differently. 
+			// parts.push(this.formatMeta(event.meta))
 		}
 
-		return line;
-	}
+        // ---------------------------------------------------------------------
+        // Message
+        // ---------------------------------------------------------------------
 
-	/**
-	 * Render a structured event as JSON.
-	 * @param {Object} event
-	 * @returns {string}
-	 */
-	formatJSON(event) {
-		return JSON.stringify(event);
-	}
+        const indent = "  ".repeat(event.depth || 0);
 
-	/**
-	 * Output the log event to the appropriate console stream.
-	 * @param {Object} event
-	 */
-	log(event) {
-		const output = this.pretty
-			? this.formatPretty(event)
-			: this.formatJSON(event);
+        parts.push(indent + event.message);
 
-		if (event.level === "error") console.error(output);
-		else if (event.level === "warn") console.warn(output);
-		else console.log(output);
-	}
+        return parts.join(" ");
+    }
 
-	/**
-	 * Render a separator line to console output.
-	 * @param {string} text
-	 * @param {Object} [options]
-	 */
-	line(text, options = {}) {
-		const indent = " ".repeat((options.indent || 0) * 2);
-		console.log(indent + text);
-	}
+    formatTime(value) {
+        return new Date(value).toLocaleTimeString();
+    }
+
+    formatLevel(level) {
+        switch (level) {
+            case "debug":
+                return chalk.gray("DEBUG");
+
+            case "info":
+                return chalk.blue("INFO ");
+
+            case "success":
+                return chalk.green("DONE ");
+
+            case "warn":
+                return chalk.yellow("WARN ");
+
+            case "error":
+                return chalk.red("ERROR");
+
+            case "line":
+                return chalk.dim("─────");
+
+            default:
+                return chalk.white(level.toUpperCase());
+        }
+    }
 }

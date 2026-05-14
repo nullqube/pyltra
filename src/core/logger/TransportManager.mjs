@@ -6,50 +6,74 @@
  */
 
 export class TransportManager {
-	/**
-	 * @param {Array} [transports]
-	 */
-	constructor(transports = []) {
-		this.transports = transports;
-	}
+    constructor({
+        runtime,
+        transports = [],
+    } = {}) {
+        this.runtime = runtime;
 
-	/**
-	 * Add a transport instance to the manager.
-	 * @param {Object} transport
-	 */
-	add(transport) {
-		this.transports.push(transport);
-	}
+        this.transports = [];
 
-	/**
-	 * Dispatch a structured log event to every transport.
-	 * @param {Object} event
-	 */
-	log(event) {
-		for (const t of this.transports) {
-			t.log(event);
-		}
-	}
+        for (const transport of transports) {
+            this.add(transport);
+        }
+    }
 
-	/**
-	 * Forward a line command to transports that support it.
-	 * @param {string} text
-	 * @param {Object} [options]
-	 */
-	line(text, options = {}) {
-		for (const transport of this.transports) {
-			if (typeof transport.line === "function") {
-				transport.line(text, options);
-			}
-		}
-	}
+    // -------------------------------------------------------------------------
+    // Registration
+    // -------------------------------------------------------------------------
 
-	/**
-	 * Close any transports that expose a close hook.
-	 */
-	close() {
-		for (const t of this.transports) {
-			t.close?.();
-		}
-	}
+    add(transport) {
+        if (!transport) {
+            return;
+        }
+
+        this.transports.push(transport);
+
+        return transport;
+    }
+
+    remove(transport) {
+        this.transports = this.transports.filter(
+            t => t !== transport
+        );
+    }
+
+    clear() {
+        this.transports = [];
+    }
+
+    // -------------------------------------------------------------------------
+    // Event Dispatch
+    // -------------------------------------------------------------------------
+
+    emit(event) {
+        for (const transport of this.transports) {
+            try {
+                transport.emit(event);
+
+            } catch (error) {
+                this.handleTransportError(error, transport, event);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Error Isolation
+    // -------------------------------------------------------------------------
+
+    handleTransportError(error, transport, event) {
+        // Never allow logging failures
+        // to crash runtime execution.
+
+        try {
+            console.error(
+                `[TransportError:${transport.constructor.name}]`,
+                error
+            );
+
+        } catch {
+            // Final safeguard.
+        }
+    }
 }
