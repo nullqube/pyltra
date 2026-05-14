@@ -21,12 +21,14 @@
 // It delegates everything to lower layers.
 //
 
+import { Runtime } from './runtime/Runtime.mjs';
+import { RuntimeAware } from './runtime/RuntimeAware.mjs';
 import { Project } from '../project/Project.mjs';
 import { BuildManager } from './BuildManager.mjs';
 import { DevServer } from './DevServer.mjs';
 import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 
-export class PyltraEngine {
+export class PyltraEngine extends RuntimeAware {
 
     /**
      * @param {Object} options
@@ -34,9 +36,9 @@ export class PyltraEngine {
      * @param {'dev' | 'prod'} [options.mode]
      */
     constructor( options = {} ) {
+        super(options.runtime); 
         this.options = {
             cwd: process.cwd(),
-            mode: 'development',
             ...options
         }
 
