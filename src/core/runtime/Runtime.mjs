@@ -46,18 +46,18 @@ export class Runtime {
         version = null,
         startTime = Date.now(),
     } = {}) {
-        this.environment = environment;
-        this.command = command;
+        this.environment = environment; // "development", "production", "test", "staging"
+        this.command = command; // Current command being executed, if applicable
         this.logger = logger;
         this.reporter = reporter;
-        this.debug = debug;
-        this.verbose = verbose;
-        this.silent = silent;
+        this.debug = debug; // Debug implies development, but not vice versa
+        this.verbose = verbose; // Verbose implies debug, but not vice versa
+        this.silent = silent; // Silent mode overrides all logging
         this.watch = watch;
-        this.interactive = interactive;
-        this.ci = ci;
-        this.version = version;
-        this.startTime = startTime;
+        this.interactive = ci ? false : interactive; // Force non-interactive in CI environments
+        this.ci = ci ?? Boolean(process.env.CI); // CI mode implies non-interactive, but not vice versa
+        this.version = version; // Application version, if available
+        this.startTime = startTime; // Timestamp when the process started, used for uptime calculations
     }
 
     setLogger(logger) {
@@ -95,11 +95,11 @@ export class Runtime {
     // ---------------------------------------------------------------------------
 
     get canDebug() {
-        return this.debug || this.isDevelopment;
+        return !this.silent && (this.debug || this.isDevelopment);
     }
 
     get shouldLogVerbose() {
-        return this.verbose || this.debug;
+        return !this.silent && (this.verbose || this.debug);
     }
 
     get shouldSilenceOutput() {
