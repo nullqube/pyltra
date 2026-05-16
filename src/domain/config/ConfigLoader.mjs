@@ -5,6 +5,8 @@ import yaml from 'js-yaml';
 import { CONFIG_DEFAULTS } from './defaults.mjs';
 import { validateConfig, mergeWithDefaults, buildPaths } from './helpers.mjs';
 
+import { RuntimeAware } from '../../core/runtime/RuntimeAware.mjs';
+
 function clonePlainValue(value) {
     if (value === null || value === undefined) return value;
     return JSON.parse(JSON.stringify(value));
@@ -23,7 +25,7 @@ function assertPlainObject(value, label) {
  * derives normalized project paths. It owns config loading only; runtime work
  * belongs to Project, systems, and data/rendering classes.
  */
-export class ConfigLoader {
+export class ConfigLoader extends RuntimeAware {
     /**
      * @param {Object} options
      * @param {string} [options.cwd]
@@ -32,10 +34,11 @@ export class ConfigLoader {
      * @param {boolean} [options.validate]
      */
     constructor(options = {}) {
+        super(options.runtime);
+        
         const {
             cwd = process.cwd(),
             configFile = 'config.yaml',
-            isProd = false,
             validate = true
         } = options;
 

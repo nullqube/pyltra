@@ -10,9 +10,11 @@ import browserSync from 'browser-sync';
 import chokidar from 'chokidar';
 import path from 'path';
 
-export class DevServer {
+import { RuntimeAware } from './runtime/RuntimeAware.mjs'
+export class DevServer extends RuntimeAware{
 
-    constructor(project, buildManager) {
+    constructor(runtime, project, buildManager) {
+        super(runtime);
         this.project = project;
         this.buildManager = buildManager;
         this.server = browserSync.create();
@@ -42,7 +44,9 @@ export class DevServer {
         const srcPath = path.join(this.project.cwd, this.project.paths.src);
 
         chokidar.watch(srcPath).on('change', async () => {
-            console.log('File changed. Rebuilding...');
+            if( this.shouldLogVerbose ) {
+                console.log('File changed. Rebuilding...');
+            }
             await this.buildManager.build();
             this.server.reload();
         });

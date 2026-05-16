@@ -75,6 +75,14 @@ export class RuntimeAware {
         return this.runtime.isInteractive;
     }
 
+    get shouldLogVerbose() {
+        return this.runtime.shouldLogVerbose;
+    }
+
+    get shouldSilenceOutput() {
+        return this.runtime.shouldSilenceOutput;
+    }
+
     // -------------------------------------------------------------------------
     // Timing
     // -------------------------------------------------------------------------

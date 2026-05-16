@@ -17,9 +17,10 @@ import path from 'path';
 import ConfigValidator from '../domain/config/ConfigValidator.mjs';
 import { Renderer } from '../renderer/Renderer.mjs';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
-
-export class BuildManager {
-    constructor( project ) {
+import { RuntimeAware } from './runtime/RuntimeAware.mjs';
+export class BuildManager extends RuntimeAware {
+    constructor( runtime, project ) {
+        super(runtime);
         this.project = project;
 
         this.renderer = new Renderer(project);

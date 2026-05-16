@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import yaml from 'js-yaml';
+
+import { RuntimeAware } from '../runtime/RuntimeAware.mjs';
 
 function clonePlainValue(value) {
     if (value === null || value === undefined) return value;
@@ -42,12 +43,14 @@ function filterDraftItems(items, isProd) {
  * keeping the boundary narrow enough to move filesystem reads behind an adapter
  * later.
  */
-export class DataLoader {
+export class DataLoader extends RuntimeAware{
     /**
      * @param {Object|import('../project/Project.mjs').Project} options
      * @param {import('../project/Project.mjs').Project} [options.project]
      */
     constructor(options) {
+        super(options.runtime);
+
         this.project = options?.project || options;
 
         if (!this.project) {
@@ -68,11 +71,15 @@ export class DataLoader {
         this._assertLanguage(lang);
 
         if (this.cache.has(lang)) {
-            console.log(`Using cached data for "${lang}"`);
+            if( !this.shouldLogVerbose ) {
+                console.log(`Using cached data for "${lang}"`);
+            }
             return clonePlainValue(this.cache.get(lang));
         }
 
-        console.log(`Loading data for "${lang}"...`);
+        if( this.shouldLogVerbose ) {
+            console.log(`Loading data for "${lang}"...`);
+        }
 
         const config = this.project.getConfig();
         const pieces = [
@@ -208,7 +215,10 @@ export class DataLoader {
 
         try {
             const loaded = yaml.load(fs.readFileSync(filePath, 'utf8'));
-            console.log(`  Loaded ${fileName}`);
+            
+            if (this.shouldLogVerbose) {
+                console.log(`  Loaded ${fileName}`);
+            }
 
             if (pageName === 'shared') {
                 return loaded?.[lang] || fallback;
