@@ -39,7 +39,7 @@ export class PyltraEngine extends RuntimeAware {
         super(options.runtime); 
         this.options = {
             cwd: process.cwd(),
-            ...options
+            // ...options // we only get cwd from options, the rest get from runtime
         }
 
         this.project = null;
