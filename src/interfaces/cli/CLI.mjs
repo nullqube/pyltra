@@ -16,6 +16,7 @@
 // It delegates all core functionality to the PyltraEngine class.
 //
 
+import { Runtime } from '../../core/runtime.mjs';
 import { Command } from 'commander';
 import prompts from 'prompts';
 import fs from 'fs';
@@ -47,7 +48,11 @@ export class CLI {
         program
             .option('--debug', 'Show full error output')
             .option('--prod',  'Run in production mode')
-            .option('--dev',   'Run in development mode (default)');
+            .option('--dev',   'Run in development mode (default)')
+            .option('--watch', 'Watch files for changes (de(v mode only)')
+            .option('--ci',    'Run in CI mode (no interactive prompts)')
+            .option('--verbose', 'Show verbose output')
+            .option('--silent', 'Suppress all output');
 
         try {
             const packageJson = JSON.parse(
@@ -66,9 +71,32 @@ export class CLI {
         program.hook('preAction', (thisCommand) => {
             const opts = thisCommand.opts();
             const root = resolveProjectRoot();
+            const logger = new Logger({
+                runtime,
+                prefix: "pyltra",
+                transports: [
+                    new ConsoleTransport({
+                        runtime,
+                        level: "debug",
+                        timestamp: true,
+                        useColors: true,
+                    })
+                ],
+            });
+            const runtime = Runtime.fromCLI({
+                environment: opts.prod ? 'production' : 'development',
+                command: thisCommand.name(),
+                debug: opts.debug || false,
+                verbose: opts.verbose || false,
+                silent: opts.silent || false,
+                watch: opts.watch || false,
+                ci: opts.ci || false,
+                version: program.version(),
+            });
+            runtime.setLogger(logger);
             this.engine = new PyltraEngine({
                 cwd: root,
-                mode: opts.prod ? 'prod' : 'dev'
+                runtime
             });
         });
 
