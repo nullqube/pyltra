@@ -27,7 +27,7 @@ function normalizeMode(mode) {
 
 function clonePlainValue(value) {
     if (value === null || value === undefined) return value;
-    return JSON.parse(JSON.stringify(value));
+    return structuredClone(value);
 }
 
 function joinProjectPath(root, projectPath) {
@@ -56,17 +56,12 @@ export class Project {
      */
     constructor(options = {}) {
         const root = options.root || options.cwd || process.cwd();
-        const mode = normalizeMode(options.mode || DEVELOPMENT_MODE);
-
         this.root = path.resolve(root);
         this.cwd = this.root;
-        this.mode = mode;
-        this.isProd = mode === PRODUCTION_MODE;
 
         // We now support custom injected loaders
         this.configLoader = options.configLoader || new ConfigLoader({
             cwd: this.root,
-            isProd: this.isProd
         });
 
         /** @type {SiteConfig|null} */
@@ -113,20 +108,6 @@ export class Project {
      */
     isLoaded() {
         return this._loaded;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    getIsProd() {
-        return this.isProd;
-    }
-
-    /**
-     * @returns {'development'|'production'}
-     */
-    getMode() {
-        return this.mode;
     }
 
     /**
@@ -212,15 +193,6 @@ export class Project {
     }
 
     /**
-     * Alias with a more explicit v2 name.
-     *
-     * @returns {DataLoader}
-     */
-    getDataLoader() {
-        return this.getData();
-    }
-
-    /**
      * @returns {Object}
      */
     getMetadata() {
@@ -239,8 +211,6 @@ export class Project {
         return {
             root: this.root,
             cwd: this.cwd,
-            mode: this.mode,
-            isProd: this.isProd,
             metadata: this.getMetadata(),
             paths: this.getPaths(),
             config: this.getConfig()
@@ -258,8 +228,6 @@ export class Project {
 
         return {
             root: this.root,
-            mode: this.mode,
-            isProd: this.isProd,
             title: site.title || 'Pyltra Site',
             languageCodes: this.config.languages.map(language => language.code)
         };
