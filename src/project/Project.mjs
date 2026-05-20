@@ -2,28 +2,7 @@ import path from 'path';
 
 import { DataLoader } from '../data/DataLoader.mjs';
 import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
-
-const DEVELOPMENT_MODE = 'development';
-const PRODUCTION_MODE = 'production';
-
-const MODE_ALIASES = new Map([
-    ['dev', DEVELOPMENT_MODE],
-    ['development', DEVELOPMENT_MODE],
-    ['prod', PRODUCTION_MODE],
-    ['production', PRODUCTION_MODE]
-]);
-
-function normalizeMode(mode) {
-    const normalized = MODE_ALIASES.get(String(mode || '').toLowerCase());
-
-    if (!normalized) {
-        throw new Error(
-            `Invalid project mode "${mode}". Expected "development" or "production".`
-        );
-    }
-
-    return normalized;
-}
+import { ProjectPaths } from './ProjectPaths.mjs';
 
 function clonePlainValue(value) {
     if (value === null || value === undefined) return value;
@@ -51,63 +30,38 @@ export class Project {
      * @param {Object} options
      * @param {string} [options.cwd]
      * @param {string} [options.root]
-     * @param {'development'|'production'|'dev'|'prod'} [options.mode]
-     * @param {ConfigLoader} [options.configLoader]
+     * @param {Object} [options.config]
+     * @param {Object} [options.data]
+     * @param {Object} [options.paths]
      */
     constructor(options = {}) {
         const root = options.root || options.cwd || process.cwd();
         this.root = path.resolve(root);
         this.cwd = this.root;
 
-        // We now support custom injected loaders
-        this.configLoader = options.configLoader || new ConfigLoader({
-            cwd: this.root,
-        });
-
+        if( options.config == null ) {
+            throw new Error('Project requires a config object or configLoader instance.');
+        }
+        if( options.data == null ) {
+            throw new Error('Project requires a data instance to derive from.');
+        }
+        if( options.paths == null ) {
+            throw new Error('Project requires a paths object.');
+        }
+        
         /** @type {SiteConfig|null} */
-        this.config = null;
+        this.config = options.config;
 
         /** @type {PathsConfig|null} */
-        this.paths = null;
+        this.paths = new ProjectPaths({
+            root: this.root,
+            paths: options.paths
+        });
 
         /** @type {DataLoader|null} */
-        this.data = null;
+        this.data = options.data;
 
-        this._loaded = false;
-        this._metadata = null;
-    }
-
-    /**
-     * Loads project configuration and derives runtime paths.
-     * Idempotent after the first successful load.
-     *
-     * @returns {Promise<Project>}
-     */
-    async load() {
-        if (this._loaded) return this;
-
-        // Since we support custom loader we need to be sure if they
-        // have the function.
-        // It syncs the Project mode into the ConfigLoader right before loading,
-        // cause the custom loader constructor been called cefore our load() stage.
-        if (typeof this.configLoader.setIsProd === 'function') {
-            this.configLoader.setIsProd(this.isProd);
-        }
-
-        this.config = this.configLoader.load();
-        this.paths = this.configLoader.getPaths();
-        this.data = new DataLoader(this);
         this._metadata = this._buildMetadata();
-        this._loaded = true;
-
-        return this;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    isLoaded() {
-        return this._loaded;
     }
 
     /**
@@ -123,7 +77,6 @@ export class Project {
      * @returns {SiteConfig}
      */
     getConfig() {
-        this._assertLoaded();
         return clonePlainValue(this.config);
     }
 
@@ -133,8 +86,7 @@ export class Project {
      * @returns {PathsConfig}
      */
     getPaths() {
-        this._assertLoaded();
-        return clonePlainValue(this.paths);
+        return this.paths;
     }
 
     /**
@@ -144,41 +96,38 @@ export class Project {
      * @returns {string}
      */
     getPath(key) {
-        this._assertLoaded();
+        // if (!Object.hasOwn(this.paths, key)) {
+        //     throw new Error(`Unknown project path "${key}".`);
+        // }
 
-        if (!Object.hasOwn(this.paths, key)) {
-            throw new Error(`Unknown project path "${key}".`);
-        }
-
-        return joinProjectPath(this.root, this.paths[key]);
+        return this.paths.resolve(key);
     }
 
     /**
      * @returns {string}
      */
     getSourcePath() {
-        return this.getPath('src');
+        return this.paths.getSourcePath();
     }
 
     /**
      * @returns {string}
      */
     getDataPath() {
-        return this.getPath('data');
+        return this.paths.getDataPath();
     }
 
     /**
      * @returns {string}
      */
     getDistPath() {
-        return this.getPath('dist');
+        return this.paths.getDistPath();
     }
 
     /**
      * @returns {string[]}
      */
     getLanguages() {
-        this._assertLoaded();
         return this.config.languages.map(language => language.code);
     }
 
@@ -188,7 +137,13 @@ export class Project {
      * @returns {DataLoader}
      */
     getData() {
-        this._assertLoaded();
+        // TODO: maybe immutable later using structuredClone 
+        // or a library like immer if we want to allow nested 
+        // mutation in some places but not others.
+        // For now, we can rely on convention and documentation 
+        // to prevent accidental mutation of the data object 
+        // returned by getData().
+
         return this.data;
     }
 
@@ -196,7 +151,6 @@ export class Project {
      * @returns {Object}
      */
     getMetadata() {
-        this._assertLoaded();
         return clonePlainValue(this._metadata);
     }
 
@@ -215,12 +169,6 @@ export class Project {
             paths: this.getPaths(),
             config: this.getConfig()
         };
-    }
-
-    _assertLoaded() {
-        if (!this._loaded) {
-            throw new Error('Project not loaded. Call project.load() first.');
-        }
     }
 
     _buildMetadata() {
