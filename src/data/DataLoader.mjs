@@ -43,7 +43,7 @@ function filterDraftItems(items, isProd) {
  * keeping the boundary narrow enough to move filesystem reads behind an adapter
  * later.
  */
-export class DataLoader extends RuntimeAware{
+export class DataLoader extends RuntimeAware {
     /**
      * @param {Object|import('../project/Project.mjs').Project} options
      * @param {import('../project/Project.mjs').Project} [options.project]
@@ -127,6 +127,15 @@ export class DataLoader extends RuntimeAware{
         const pageData = this.load(lang);
         const page = pageData[pageName] || {};
 
+        // TODO: consider moving this logic to a separate method and 
+        // applying it to collections as well, for consistency. 
+        // The old render task only skipped draft pages, 
+        // but it might make sense to skip or flag draft collection 
+        // items in the same way.
+        // Also is it the right good behavior to return null for drafts,
+        // or should we always return an object with a _draft flag?
+        // For now, we can at least add a _draft flag to the item 
+        // context so templates can handle it if needed.
         if (this.project.getIsProd() && isDraft(page)) {
             return null;
         }
