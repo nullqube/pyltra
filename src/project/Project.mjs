@@ -64,6 +64,14 @@ export class Project {
         this._metadata = this._buildMetadata();
     }
 
+    get Pages() {
+        return this.config.pages;
+    }
+
+    get Collections() {
+        return this.config.collections;
+    }
+    
     /**
      * @returns {string}
      */
