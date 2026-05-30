@@ -69,6 +69,15 @@ export class OutputWriter {
         this.fs = fsAdapter;
     }
 
+    async writeBundle(fileName, content) {
+        const outputPath = path.join(
+            this.project.getDistPath(),
+            fileName
+        );
+
+        await this.fs.writeText(outputPath, content);
+    }
+    
     async writePage(language, pageName, content) {
         const outputPath = this.getPageOutputPath(language, pageName);
 
