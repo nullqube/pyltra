@@ -136,7 +136,7 @@ export class DataLoader extends RuntimeAware {
         // or should we always return an object with a _draft flag?
         // For now, we can at least add a _draft flag to the item 
         // context so templates can handle it if needed.
-        if (this.project.getIsProd() && isDraft(page)) {
+        if (this.isProduction && isDraft(page)) {
             return null;
         }
 
@@ -160,7 +160,7 @@ export class DataLoader extends RuntimeAware {
 
         return {
             ...collection,
-            items: filterDraftItems(collection.items || [], this.project.getIsProd())
+            items: filterDraftItems(collection.items || [], this.isProduction)
         };
     }
 
@@ -178,7 +178,7 @@ export class DataLoader extends RuntimeAware {
         const rawCollection = pageData[collectionName] || { items: [] };
         const rawItem = rawCollection.items.find(candidate => candidate.slug === slug);
 
-        if (!rawItem || (this.project.getIsProd() && isDraft(rawItem))) {
+        if (!rawItem || (this.isProduction && isDraft(rawItem))) {
             return null;
         }
 
