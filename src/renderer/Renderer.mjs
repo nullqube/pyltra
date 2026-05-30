@@ -1,8 +1,12 @@
 /**
  * Renderer
  * --------
+ * Transforms loaded project data and templates into HTML files.
+ * 
  * Coordinates page and collection rendering for a loaded project.
- *
+ * Renderer does not own project state, scan content data, run the build,
+ * process assets, serve files, or watch the filesystem. It receives a loaded
+ * Project and asks DataLoader for template-ready render context.
  * Owns:
  * - Template rendering flow
  * - Page/collection render orchestration
@@ -61,6 +65,11 @@ export class Renderer extends RuntimeAware {
         this.outputWriter = new OutputWriter(this.project, this.fsAdapter);
     }
 
+    /**
+     * Renders all configured languages, collection items, and bundle files.
+     *
+     * @returns {Promise<Object[]>}
+     */
     async renderAll() {
         for (const lang of this.project.getLanguages()) {
             await this.renderLanguage(lang);
@@ -70,11 +79,23 @@ export class Renderer extends RuntimeAware {
         return outputs;
     }
 
+    /**
+     * Renders all page templates and collection item pages for one language.
+     *
+     * @param {string} lang
+     * @returns {Promise<Object[]>}
+     */
     async renderLanguage(lang) {
         await this.renderPages(lang);
         await this.renderCollections(lang);
     }
 
+    /**
+     * Renders top-level HTML templates to dist/<lang>/.
+     *
+     * @param {string} lang
+     * @returns {Promise<Object[]>}
+     */
     async renderPages(lang) {
         const templates = this.templateRepository.getPageTemplates();
 
@@ -88,12 +109,18 @@ export class Renderer extends RuntimeAware {
             this.info(`Building ${lang}/${template.name}`);
             const htmlContent = this._renderTemplate(template.templatePath, context);
             if(this.isProduction) {
-                htmlContent = minify(htmlContent, HTML_MINIFY_OPTIONS);
+                htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
             }
             await this.outputWriter.writePage(lang, template.name, htmlContent);
         }
     }
 
+    /**
+     * Renders configured collection item pages to dist/<lang>/<collection>/.
+     *
+     * @param {string} lang
+     * @returns {Promise<Object[]>}
+     */
     async renderCollections(lang) {
         const config = this.project.getConfig();
         for( const [collectionName, collectionConfig] of Object.entries(config.collections) ) {
@@ -116,6 +143,24 @@ export class Renderer extends RuntimeAware {
                 await this.outputWriter.writeCollectionItem(lang, collectionName, item, htmlContent);
             }
         }
+    }
+
+    /**
+     * Copies configured bundle HTML files from src/ to dist/.
+     *
+     * @returns {Promise<Object[]>}
+     */
+    async renderBundles() {
+        const config = this.project.getConfig();
+        for( const fileName of config.bundles || [] ) {
+            const content = await this.fsAdapter.readText(path.join(this.project.getSrcPath(), fileName));
+            this.info(`Copied bundle: ${fileName}`);
+            if(this.isProduction) {
+                content = htmlMinifier.minify(content, HTML_MINIFY_OPTIONS);
+            }
+            await this.outputWriter.writeBundle(fileName, content);
+        }
+
     }
 
     _renderTemplate(templateName, context) {
