@@ -26,7 +26,7 @@ export class BuildManager extends RuntimeAware {
             runtime: this.runtime,
             project
         });
-        this.assets = new AssetPipeline(project);
+        this.assets = new AssetPipeline(this.runtime, project);
         this.validator = new ConfigValidator(project);
     }
 
