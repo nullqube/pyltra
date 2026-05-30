@@ -21,11 +21,14 @@
 // It delegates everything to lower layers.
 //
 
-import { Project } from './Project.mjs';
+import { Runtime } from './runtime/Runtime.mjs';
+import { RuntimeAware } from './runtime/RuntimeAware.mjs';
+import { Project } from '../project/Project.mjs';
 import { BuildManager } from './BuildManager.mjs';
 import { DevServer } from './DevServer.mjs';
+import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 
-export class PyltraEngine {
+export class PyltraEngine extends RuntimeAware {
 
     /**
      * @param {Object} options
@@ -33,30 +36,55 @@ export class PyltraEngine {
      * @param {'dev' | 'prod'} [options.mode]
      */
     constructor( options = {} ) {
-        this.options = options;
+        super(options.runtime); 
+        this.options = {
+            cwd: process.cwd(),
+            // ...options // we only get cwd from options, the rest get from runtime
+        }
+
+        this.project = null;
+        this.buildManager = null;
+        this.devServer = null;
+
+        this._booted = false;
+        this._loaded = false;
     }
 
     /**
-     * Initializes a new project (used by CLI init command)
+     * Boostraps the system (lazy init)
      */
-    async init(initOptions) {
-        await this.project.initialize(initOptions);
-    }
+    async boot() {
+        if(this._booted) return;
 
-    /**
-     * Initializes a new project (used by CLI init command)
-     */
-    async load(initOptions) {
-        this.project = new Project(options);
+        this.project = new Project(this.options);
         this.buildManager = new BuildManager(this.project);
         this.devServer = new DevServer(this.project, this.buildManager);
+
+        this._booted = true;
+    }
+
+    /**
+     * Load a project 
+     */
+    async load() {
+        await this.boot();
+        if(this._loaded) return;
+        await this.project.load();
+        this._loaded = true;
+    }
+
+    /**
+     * Initializes a new project (used by CLI init command)
+     */
+    async init(initOptions, responses) {
+        await ProjectScaffolder.create(initOptions, responses);
     }
 
     /**
      * Build the project
      */
     async build() {
-        await this.project.load();
+        await this.load();
         await this.buildManager.build();
     }
 
@@ -64,7 +92,7 @@ export class PyltraEngine {
      * Validates project configuration and structure
      */
     async validate() {
-        await this.project.load();
+        await this.load();
         await this.buildManager.validate();
     }
 
@@ -72,7 +100,15 @@ export class PyltraEngine {
      * Starts dev server + watchers
      */
     async serve() {
-        await this.project.load();
+        await this.load();
         await this.devServer.start();
+    }
+
+    /**
+     * Cleans output directory
+     */
+    async clean() {
+        await this.load();
+        await this.buildManager.clean();
     }
 }

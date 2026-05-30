@@ -1,0 +1,285 @@
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
+import { marked } from 'marked';
+import yaml from 'js-yaml';
+
+import { RuntimeAware } from '../runtime/RuntimeAware.mjs';
+
+function clonePlainValue(value) {
+    if (value === null || value === undefined) return value;
+    return structuredClone(value);
+}
+
+function replaceLanguageToken(value, lang) {
+    return String(value).replaceAll('${lang}', lang);
+}
+
+function getExtension(fileName) {
+    const ext = path.extname(fileName).slice(1).toLowerCase();
+    return ext === 'yml' ? 'yaml' : ext;
+}
+
+function isDraft(data) {
+    return data?.draft === true;
+}
+
+function filterDraftItems(items, isProd) {
+    if (isProd) {
+        return items.filter(item => !isDraft(item));
+    }
+
+    return items.map(item => ({
+        ...item,
+        _draft: isDraft(item)
+    }));
+}
+
+/**
+ * DataLoader
+ * ----------
+ * Loads language-aware page and collection data into the flat template context
+ * used by the current renderer. It reads project data files for v2, while
+ * keeping the boundary narrow enough to move filesystem reads behind an adapter
+ * later.
+ */
+export class DataLoader extends RuntimeAware{
+    /**
+     * @param {Object|import('../project/Project.mjs').Project} options
+     * @param {import('../project/Project.mjs').Project} [options.project]
+     */
+    constructor(options) {
+        super(options.runtime);
+
+        this.project = options?.project || options;
+
+        if (!this.project) {
+            throw new Error('DataLoader requires a loaded Project instance.');
+        }
+
+        /** @type {Map<string, Object>} */
+        this.cache = new Map();
+    }
+
+    /**
+     * Loads the legacy flat template context for a language.
+     *
+     * @param {string} lang
+     * @returns {Object}
+     */
+    load(lang) {
+        this._assertLanguage(lang);
+
+        if (this.cache.has(lang)) {
+            if( !this.shouldLogVerbose ) {
+                console.log(`Using cached data for "${lang}"`);
+            }
+            return clonePlainValue(this.cache.get(lang));
+        }
+
+        if( this.shouldLogVerbose ) {
+            console.log(`Loading data for "${lang}"...`);
+        }
+
+        const config = this.project.getConfig();
+        const pieces = [
+            { langs: config.languages }
+        ];
+
+        for (const [pageName, pageConfig] of Object.entries(config.pages)) {
+            pieces.push(this._loadPageData(pageName, pageConfig, lang));
+        }
+
+        const collections = this._loadCollectionsData(lang);
+        if (Object.keys(collections).length > 0) {
+            pieces.push(collections);
+        }
+
+        const context = Object.assign({}, ...pieces);
+        this.cache.set(lang, context);
+
+        return clonePlainValue(context);
+    }
+
+    /**
+     * Clears cached data for a specific language, or all languages if omitted.
+     *
+     * @param {string} [lang]
+     */
+    invalidateCache(lang) {
+        if (lang) {
+            this.cache.delete(lang);
+            return;
+        }
+
+        this.cache.clear();
+    }
+
+    /**
+     * Builds context for one top-level page. Returns null for production drafts,
+     * matching the old render task's skip behavior.
+     *
+     * @param {string} lang
+     * @param {string} pageName
+     * @returns {Object|null}
+     */
+    getPageContext(lang, pageName) {
+        const pageData = this.load(lang);
+        const page = pageData[pageName] || {};
+
+        if (this.project.getIsProd() && isDraft(page)) {
+            return null;
+        }
+
+        return {
+            activePage: pageName,
+            lang,
+            ...pageData
+        };
+    }
+
+    /**
+     * Returns collection data with item draft handling applied for rendering.
+     *
+     * @param {string} lang
+     * @param {string} collectionName
+     * @returns {Object}
+     */
+    getCollection(lang, collectionName) {
+        const pageData = this.load(lang);
+        const collection = pageData[collectionName] || { items: [] };
+
+        return {
+            ...collection,
+            items: filterDraftItems(collection.items || [], this.project.getIsProd())
+        };
+    }
+
+    /**
+     * Builds context for one collection item page. Returns null for production
+     * drafts, matching the old render task's skip behavior.
+     *
+     * @param {string} lang
+     * @param {string} collectionName
+     * @param {string} slug
+     * @returns {Object|null}
+     */
+    getCollectionItemContext(lang, collectionName, slug) {
+        const pageData = this.load(lang);
+        const rawCollection = pageData[collectionName] || { items: [] };
+        const rawItem = rawCollection.items.find(candidate => candidate.slug === slug);
+
+        if (!rawItem || (this.project.getIsProd() && isDraft(rawItem))) {
+            return null;
+        }
+
+        const collection = this.getCollection(lang, collectionName);
+        const item = collection.items.find(candidate => candidate.slug === slug);
+
+        return {
+            ...pageData,
+            [collectionName]: collection,
+            lang,
+            article: item,
+            collection: collectionName
+        };
+    }
+
+    /**
+     * Parses supported content file formats.
+     *
+     * @param {string} content
+     * @param {'md'|'json'|'yaml'|'yml'} type
+     * @returns {Object}
+     */
+    loadContent(content, type) {
+        const normalizedType = type === 'yml' ? 'yaml' : type;
+
+        if (normalizedType === 'md') {
+            const { data, content: body } = matter(content);
+            return { ...data, content: marked(body) };
+        }
+
+        if (normalizedType === 'json') return JSON.parse(content);
+        if (normalizedType === 'yaml') return yaml.load(content);
+
+        throw new Error(`Unsupported file type: ${type}`);
+    }
+
+    _loadPageData(pageName, pageConfig, lang) {
+        const { file = '', fallback = {} } = pageConfig ?? {};
+        const fileName = file
+            ? replaceLanguageToken(file, lang)
+            : `${lang}/${pageName}.yaml`;
+        const filePath = path.join(this.project.getDataPath(), fileName);
+
+        try {
+            const loaded = yaml.load(fs.readFileSync(filePath, 'utf8'));
+            
+            if (this.shouldLogVerbose) {
+                console.log(`  Loaded ${fileName}`);
+            }
+
+            if (pageName === 'shared') {
+                return loaded?.[lang] || fallback;
+            }
+
+            return { [pageName]: loaded };
+        } catch {
+            return { [pageName]: fallback };
+        }
+    }
+
+    _loadCollectionsData(lang) {
+        const config = this.project.getConfig();
+        const result = [];
+
+        for (const [collectionName, collectionConfig] of Object.entries(config.collections)) {
+            result.push({
+                [collectionName]: this._loadCollection(collectionName, collectionConfig, lang)
+            });
+        }
+
+        return Object.assign({}, ...result);
+    }
+
+    _loadCollection(collectionName, collectionConfig, lang) {
+        const { dataFile, items = [] } = collectionConfig;
+        const collectionFileName = replaceLanguageToken(dataFile, lang);
+        const collectionFilePath = path.join(this.project.getDataPath(), collectionFileName);
+
+        try {
+            const collectionData = yaml.load(fs.readFileSync(collectionFilePath, 'utf8'));
+
+            return {
+                ...collectionData,
+                items: items.map(item => this._loadCollectionItem(collectionName, item, lang))
+            };
+        } catch {
+            return { items: [] };
+        }
+    }
+
+    _loadCollectionItem(collectionName, item, lang) {
+        const itemFileName = replaceLanguageToken(item.file, lang);
+        const itemFilePath = path.join(this.project.getDataPath(), itemFileName);
+        const fileType = getExtension(itemFileName);
+
+        try {
+            const parsed = this.loadContent(fs.readFileSync(itemFilePath, 'utf8'), fileType);
+            return { slug: item.slug, ...parsed };
+        } catch {
+            return { slug: item.slug, ...(item.fallback || {}) };
+        }
+    }
+
+    _assertLanguage(lang) {
+        const languages = this.project.getLanguages();
+
+        if (!languages.includes(lang)) {
+            throw new Error(
+                `Unknown language "${lang}". Expected one of: ${languages.join(', ')}.`
+            );
+        }
+    }
+}

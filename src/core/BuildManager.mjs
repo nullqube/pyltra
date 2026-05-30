@@ -14,11 +14,13 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Renderer } from '../domain/Renderer.js';
-import { AssetPipeline } from '../domain/AssetPipeline.js';
-
-class BuildManager {
-    constructor( project ) {
+import ConfigValidator from '../domain/config/ConfigValidator.mjs';
+import { Renderer } from '../renderer/Renderer.mjs';
+import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
+import { RuntimeAware } from './runtime/RuntimeAware.mjs';
+export class BuildManager extends RuntimeAware {
+    constructor( runtime, project ) {
+        super(runtime);
         this.project = project;
 
         this.renderer = new Renderer(project);
