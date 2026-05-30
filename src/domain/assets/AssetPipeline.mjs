@@ -17,6 +17,7 @@ import autoprefixer from 'autoprefixer';
 import fastGlob from 'fast-glob';
 import postcss from 'postcss';
 import * as sass from 'sass';
+import sharp from 'sharp';
 
 import { RuntimeAware } from '../../core/runtime/RuntimeAware.mjs';
 
@@ -30,6 +31,7 @@ export class AssetPipeline extends RuntimeAware {
     async processAll() {
         await this.compileScss();
         await this.copyAssets();
+        await this.optimizeImages();
     }
 
     async compileScss() {
@@ -78,5 +80,38 @@ export class AssetPipeline extends RuntimeAware {
                 return relative === '' || !relative.split(path.sep).includes('scss');
             }
         });
+    }
+
+    async optimizeImages() {
+        const imgRoot = path.join(this.project.getSourcePath(), 'assets', 'img');
+        const distImgRoot = path.join(this.project.getDistPath(), 'assets', 'img');
+
+        if (!fs.existsSync(imgRoot)) return;
+
+        const files = await fastGlob('**/*.{jpg,jpeg,png,webp,avif}', {
+            cwd: imgRoot,
+            onlyFiles: true,
+            caseSensitiveMatch: false
+        });
+
+        await Promise.all(files.map(async file => {
+            const sourcePath = path.join(imgRoot, file);
+            const outputPath = path.join(distImgRoot, file);
+            const extension = path.extname(file).toLowerCase();
+            let pipeline = sharp(sourcePath);
+
+            if (extension === '.jpg' || extension === '.jpeg') {
+                pipeline = pipeline.jpeg({ quality: 75, progressive: true });
+            } else if (extension === '.png') {
+                pipeline = pipeline.png({ compressionLevel: 9, palette: true });
+            } else if (extension === '.webp') {
+                pipeline = pipeline.webp({ quality: 75 });
+            } else if (extension === '.avif') {
+                pipeline = pipeline.avif({ quality: 50 });
+            }
+
+            fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+            await pipeline.toFile(outputPath);
+        }));
     }
 }
