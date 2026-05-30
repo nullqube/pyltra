@@ -92,7 +92,7 @@ export class Renderer extends RuntimeAware {
                 continue;
             }
             this.info(`Building ${lang}/${template.name}`);
-            let htmlContent = this._renderTemplate(template.templatePath, context);
+            let htmlContent = this._renderTemplate(template.fileName, context);
             if(this.isProduction) {
                 htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
             }
@@ -149,8 +149,10 @@ export class Renderer extends RuntimeAware {
         try {
             return this.env.render(templateName, context);
         } catch (err) {
-            this.error(`Error rendering template "${templateName}": ${err.message}`);
-            throw err;
+            throw new Error(
+                `Renderer failed to render template "${templateName}": ${err.message}`,
+                { cause: err }
+            );
         }
     }
 
