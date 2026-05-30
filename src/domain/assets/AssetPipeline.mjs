@@ -33,6 +33,7 @@ export class AssetPipeline extends RuntimeAware {
     async processAll() {
         await this.compileScss();
         await this.copyAssets();
+        await this.writeCssSourcemaps();
         await this.minifyCss();
         await this.optimizeImages();
         await this.optimizeSvgs();
@@ -110,6 +111,39 @@ export class AssetPipeline extends RuntimeAware {
             );
 
             fs.writeFileSync(filePath, result.css);
+        }));
+    }
+
+    async writeCssSourcemaps() {
+        if (this.isProduction) return;
+
+        const cssRoot = path.join(this.project.getDistPath(), 'assets', 'css');
+
+        if (!fs.existsSync(cssRoot)) return;
+
+        const files = await fastGlob('**/*.css', {
+            cwd: cssRoot,
+            onlyFiles: true
+        });
+
+        await Promise.all(files.map(async file => {
+            const filePath = path.join(cssRoot, file);
+            const result = await postcss([]).process(
+                fs.readFileSync(filePath, 'utf8'),
+                {
+                    from: filePath,
+                    to: filePath,
+                    map: {
+                        inline: false,
+                        annotation: `${path.basename(filePath)}.map`
+                    }
+                }
+            );
+
+            fs.writeFileSync(filePath, result.css);
+            if (result.map) {
+                fs.writeFileSync(`${filePath}.map`, result.map.toString());
+            }
         }));
     }
 
