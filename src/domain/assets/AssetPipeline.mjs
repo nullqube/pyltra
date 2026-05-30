@@ -14,6 +14,7 @@ import fs from 'fs';
 import path from 'path';
 
 import autoprefixer from 'autoprefixer';
+import cssnano from 'cssnano';
 import fastGlob from 'fast-glob';
 import postcss from 'postcss';
 import * as sass from 'sass';
@@ -32,6 +33,7 @@ export class AssetPipeline extends RuntimeAware {
     async processAll() {
         await this.compileScss();
         await this.copyAssets();
+        await this.minifyCss();
         await this.optimizeImages();
         await this.optimizeSvgs();
     }
@@ -82,6 +84,33 @@ export class AssetPipeline extends RuntimeAware {
                 return relative === '' || !relative.split(path.sep).includes('scss');
             }
         });
+    }
+
+    async minifyCss() {
+        if (!this.isProduction) return;
+
+        const cssRoot = path.join(this.project.getDistPath(), 'assets', 'css');
+
+        if (!fs.existsSync(cssRoot)) return;
+
+        const files = await fastGlob('**/*.css', {
+            cwd: cssRoot,
+            onlyFiles: true
+        });
+
+        await Promise.all(files.map(async file => {
+            const filePath = path.join(cssRoot, file);
+            const result = await postcss([cssnano()]).process(
+                fs.readFileSync(filePath, 'utf8'),
+                {
+                    from: filePath,
+                    to: filePath,
+                    map: false
+                }
+            );
+
+            fs.writeFileSync(filePath, result.css);
+        }));
     }
 
     async optimizeImages() {
