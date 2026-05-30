@@ -27,6 +27,8 @@ import { Project } from '../project/Project.mjs';
 import { BuildManager } from './BuildManager.mjs';
 import { DevServer } from './DevServer.mjs';
 import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
+import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
+import { DataLoader } from '../data/DataLoader.mjs';
 
 export class PyltraEngine extends RuntimeAware {
 
@@ -36,13 +38,19 @@ export class PyltraEngine extends RuntimeAware {
      * @param {'dev' | 'prod'} [options.mode]
      */
     constructor( options = {} ) {
-        super(options.runtime); 
+        const runtime = options.runtime ?? new Runtime({
+            environment: options.mode === 'prod' ? 'production' : 'development'
+        });
+
+        super({ runtime });
         this.options = {
-            cwd: process.cwd(),
-            // ...options // we only get cwd from options, the rest get from runtime
-        }
+            cwd: options.cwd ?? process.cwd(),
+            configFile: options.configFile ?? 'config.yaml'
+        };
 
         this.project = null;
+        this.configLoader = null;
+        this.dataLoader = null;
         this.buildManager = null;
         this.devServer = null;
 
@@ -51,14 +59,16 @@ export class PyltraEngine extends RuntimeAware {
     }
 
     /**
-     * Boostraps the system (lazy init)
+     * Bootstraps engine-level services.
      */
     async boot() {
         if(this._booted) return;
 
-        this.project = new Project(this.options);
-        this.buildManager = new BuildManager(this.project);
-        this.devServer = new DevServer(this.project, this.buildManager);
+        this.configLoader = new ConfigLoader({
+            cwd: this.options.cwd,
+            configFile: this.options.configFile,
+            runtime: this.runtime
+        });
 
         this._booted = true;
     }
@@ -69,7 +79,26 @@ export class PyltraEngine extends RuntimeAware {
     async load() {
         await this.boot();
         if(this._loaded) return;
-        await this.project.load();
+
+        const config = this.configLoader.load();
+        const paths = this.configLoader.getPaths();
+
+        this.project = new Project({
+            cwd: this.options.cwd,
+            config,
+            paths,
+            data: {}
+        });
+
+        this.dataLoader = new DataLoader({
+            runtime: this.runtime,
+            project: this.project
+        });
+        this.project.setData(this.dataLoader);
+
+        this.buildManager = new BuildManager(this.runtime, this.project);
+        this.devServer = new DevServer(this.runtime, this.project, this.buildManager);
+
         this._loaded = true;
     }
 
@@ -102,6 +131,10 @@ export class PyltraEngine extends RuntimeAware {
     async serve() {
         await this.load();
         await this.devServer.start();
+    }
+
+    async start() {
+        await this.serve();
     }
 
     /**
