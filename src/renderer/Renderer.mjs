@@ -155,7 +155,7 @@ export class Renderer extends RuntimeAware {
     async renderBundles() {
         const config = this.project.getConfig();
         for( const fileName of config.bundles || [] ) {
-            let content = await this.fsAdapter.readText(path.join(this.project.getSrcPath(), fileName));
+            let content = await this.fsAdapter.readText(path.join(this.project.getSourcePath(), fileName));
             this.info(`Copied bundle: ${fileName}`);
             if(this.isProduction) {
                 content = htmlMinifier.minify(content, HTML_MINIFY_OPTIONS);
