@@ -13,17 +13,19 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import ConfigValidator from '../domain/config/ConfigValidator.mjs';
 import { Renderer } from '../renderer/Renderer.mjs';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
 import { RuntimeAware } from './runtime/RuntimeAware.mjs';
 export class BuildManager extends RuntimeAware {
     constructor( runtime, project ) {
-        super(runtime);
+        super({ runtime });
         this.project = project;
 
-        this.renderer = new Renderer(project);
+        this.renderer = new Renderer({
+            runtime: this.runtime,
+            project
+        });
         this.assets = new AssetPipeline(project);
         this.validator = new ConfigValidator(project);
     }
@@ -49,7 +51,7 @@ export class BuildManager extends RuntimeAware {
      * Cleans dist folder
      */
     async clean() {
-        const distPath = path.join(this.project.cwd, this.project.paths.dist);
+        const distPath = this.project.getDistPath();
 
         if (fs.existsSync(distPath)) {
             fs.rmSync(distPath, { recursive: true, force: true });
