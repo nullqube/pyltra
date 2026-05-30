@@ -108,7 +108,7 @@ export class Project {
         //     throw new Error(`Unknown project path "${key}".`);
         // }
 
-        return this.paths.resolve(key);
+        return this.paths.resolvePath(key);
     }
 
     /**
@@ -153,6 +153,19 @@ export class Project {
         // returned by getData().
 
         return this.data;
+    }
+
+    /**
+     * Replaces the project-owned data loader after project hydration.
+     *
+     * @param {DataLoader} data
+     */
+    setData(data) {
+        if (data == null) {
+            throw new Error('Project requires a data instance.');
+        }
+
+        this.data = data;
     }
 
     /**
