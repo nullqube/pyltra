@@ -18,6 +18,7 @@ import fastGlob from 'fast-glob';
 import postcss from 'postcss';
 import * as sass from 'sass';
 import sharp from 'sharp';
+import { optimize } from 'svgo';
 
 import { RuntimeAware } from '../../core/runtime/RuntimeAware.mjs';
 
@@ -32,6 +33,7 @@ export class AssetPipeline extends RuntimeAware {
         await this.compileScss();
         await this.copyAssets();
         await this.optimizeImages();
+        await this.optimizeSvgs();
     }
 
     async compileScss() {
@@ -112,6 +114,36 @@ export class AssetPipeline extends RuntimeAware {
 
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
             await pipeline.toFile(outputPath);
+        }));
+    }
+
+    async optimizeSvgs() {
+        const imgRoot = path.join(this.project.getSourcePath(), 'assets', 'img');
+        const distImgRoot = path.join(this.project.getDistPath(), 'assets', 'img');
+
+        if (!fs.existsSync(imgRoot)) return;
+
+        const files = await fastGlob('**/*.svg', {
+            cwd: imgRoot,
+            onlyFiles: true,
+            caseSensitiveMatch: false
+        });
+
+        await Promise.all(files.map(async file => {
+            const sourcePath = path.join(imgRoot, file);
+            const outputPath = path.join(distImgRoot, file);
+            const content = fs.readFileSync(sourcePath, 'utf8');
+            const result = optimize(content, {
+                path: sourcePath,
+                multipass: true
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to optimize SVG "${file}": ${result.error}`);
+            }
+
+            fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+            fs.writeFileSync(outputPath, result.data);
         }));
     }
 }
