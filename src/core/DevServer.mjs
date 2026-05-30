@@ -8,13 +8,12 @@
 
 import browserSync from 'browser-sync';
 import chokidar from 'chokidar';
-import path from 'path';
 
 import { RuntimeAware } from './runtime/RuntimeAware.mjs'
 export class DevServer extends RuntimeAware{
 
     constructor(runtime, project, buildManager) {
-        super(runtime);
+        super({ runtime });
         this.project = project;
         this.buildManager = buildManager;
         this.server = browserSync.create();
@@ -27,7 +26,7 @@ export class DevServer extends RuntimeAware{
 
         await this.buildManager.build();
 
-        const distPath = path.join(this.project.cwd, this.project.paths.dist);
+        const distPath = this.project.getDistPath();
 
         this.server.init({
             server: distPath,
@@ -41,7 +40,7 @@ export class DevServer extends RuntimeAware{
      * Watches src directory and rebuilds on change
      */
     watch() {
-        const srcPath = path.join(this.project.cwd, this.project.paths.src);
+        const srcPath = this.project.getSourcePath();
 
         chokidar.watch(srcPath).on('change', async () => {
             if( this.shouldLogVerbose ) {
