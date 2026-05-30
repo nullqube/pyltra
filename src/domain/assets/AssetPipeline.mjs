@@ -15,6 +15,7 @@ import path from 'path';
 
 import autoprefixer from 'autoprefixer';
 import cssnano from 'cssnano';
+import * as esbuild from 'esbuild';
 import fastGlob from 'fast-glob';
 import postcss from 'postcss';
 import * as sass from 'sass';
@@ -35,6 +36,7 @@ export class AssetPipeline extends RuntimeAware {
         await this.copyAssets();
         await this.writeCssSourcemaps();
         await this.minifyCss();
+        await this.minifyJs();
         await this.optimizeImages();
         await this.optimizeSvgs();
     }
@@ -144,6 +146,34 @@ export class AssetPipeline extends RuntimeAware {
             if (result.map) {
                 fs.writeFileSync(`${filePath}.map`, result.map.toString());
             }
+        }));
+    }
+
+    async minifyJs() {
+        if (!this.isProduction) return;
+
+        const jsRoot = path.join(this.project.getDistPath(), 'assets', 'js');
+
+        if (!fs.existsSync(jsRoot)) return;
+
+        const files = await fastGlob('**/*.js', {
+            cwd: jsRoot,
+            onlyFiles: true
+        });
+
+        await Promise.all(files.map(async file => {
+            const filePath = path.join(jsRoot, file);
+            const result = await esbuild.transform(
+                fs.readFileSync(filePath, 'utf8'),
+                {
+                    loader: 'js',
+                    minify: true,
+                    sourcemap: false,
+                    target: 'es2018'
+                }
+            );
+
+            fs.writeFileSync(filePath, result.code.trim());
         }));
     }
 
