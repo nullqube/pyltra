@@ -18,7 +18,7 @@ export class RuntimeAware {
      * @param {Object} options
      * @param {Runtime} options.runtime
      */
-    constructor({ runtime }) {
+    constructor({ runtime } = {}) {
         if (!runtime) {
             throw new Error("RuntimeAware requires runtime");
         }

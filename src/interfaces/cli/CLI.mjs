@@ -16,16 +16,17 @@
 // It delegates all core functionality to the PyltraEngine class.
 //
 
-import { Runtime } from '../../core/runtime.mjs';
 import { Command } from 'commander';
 import prompts from 'prompts';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-import { resolveProjectRoot } from '../core/resolver/rootResolver.mjs';
+import { Runtime } from '../../core/runtime/Runtime.mjs';
+import { resolveProjectRoot } from '../../core/resolver/rootResolver.mjs';
 import { PyltraEngine } from '../../core/Engine.mjs';
-
+import { Logger } from '../../core/logger/Logger.mjs';
+import { ConsoleTransport } from '../../core/logger/transports/ConsoleTransport.mjs';
 export class CLI {
 
     constructor() {
@@ -71,6 +72,18 @@ export class CLI {
         program.hook('preAction', (thisCommand) => {
             const opts = thisCommand.opts();
             const root = resolveProjectRoot();
+            
+            const runtime = Runtime.fromCLI({
+                environment: opts.prod ? 'production' : 'development',
+                command: thisCommand.name(),
+                debug: opts.debug || false,
+                verbose: opts.verbose || false,
+                silent: opts.silent || false,
+                watch: opts.watch || false,
+                ci: opts.ci || false,
+                version: program.version(),
+            });
+            
             const logger = new Logger({
                 runtime,
                 prefix: "pyltra",
@@ -82,16 +95,6 @@ export class CLI {
                         useColors: true,
                     })
                 ],
-            });
-            const runtime = Runtime.fromCLI({
-                environment: opts.prod ? 'production' : 'development',
-                command: thisCommand.name(),
-                debug: opts.debug || false,
-                verbose: opts.verbose || false,
-                silent: opts.silent || false,
-                watch: opts.watch || false,
-                ci: opts.ci || false,
-                version: program.version(),
             });
             runtime.setLogger(logger);
             this.engine = new PyltraEngine({

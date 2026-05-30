@@ -4,7 +4,7 @@ import matter from 'gray-matter';
 import { marked } from 'marked';
 import yaml from 'js-yaml';
 
-import { RuntimeAware } from '../runtime/RuntimeAware.mjs';
+import { RuntimeAware } from '../core/runtime/RuntimeAware.mjs';
 
 function clonePlainValue(value) {
     if (value === null || value === undefined) return value;
@@ -49,7 +49,7 @@ export class DataLoader extends RuntimeAware {
      * @param {import('../project/Project.mjs').Project} [options.project]
      */
     constructor(options) {
-        super(options.runtime);
+        super({ runtime: options.runtime });
 
         this.project = options?.project || options;
 

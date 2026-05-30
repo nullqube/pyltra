@@ -17,6 +17,8 @@
  * - Data loading policy
  */
 
+import path from 'path';
+
 import htmlMinifier from 'html-minifier';
 
 import { RuntimeAware } from "../core/runtime/RuntimeAware.mjs";
@@ -56,7 +58,7 @@ export class Renderer extends RuntimeAware {
         const dataLoader = hasProjectOption ? input.dataLoader : options.dataLoader;
         const environment = hasProjectOption ? input.environment : options.environment;
 
-        super(runtime);
+        super({ runtime });
         this.project = project;
         this.dataLoader = dataLoader ?? project.getData();
         this.env = environment || createNunjucksEnvironment(project);
@@ -107,7 +109,7 @@ export class Renderer extends RuntimeAware {
                 continue;
             }
             this.info(`Building ${lang}/${template.name}`);
-            const htmlContent = this._renderTemplate(template.templatePath, context);
+            let htmlContent = this._renderTemplate(template.templatePath, context);
             if(this.isProduction) {
                 htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
             }
@@ -135,8 +137,8 @@ export class Renderer extends RuntimeAware {
                         'property set to true, or missing data files that should provide context for this item.');
                     continue;
                 }
-                this.info(`Building ${lang}/${collectionName}/${item}`);
-                const htmlContent = this._renderTemplate(itemTemplate, context);
+                this.info(`Building ${lang}/${collectionName}/${slug}`);
+                let htmlContent = this._renderTemplate(itemTemplate, context);
                 if(this.isProduction) {
                     htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
                 }
@@ -153,7 +155,7 @@ export class Renderer extends RuntimeAware {
     async renderBundles() {
         const config = this.project.getConfig();
         for( const fileName of config.bundles || [] ) {
-            const content = await this.fsAdapter.readText(path.join(this.project.getSrcPath(), fileName));
+            let content = await this.fsAdapter.readText(path.join(this.project.getSrcPath(), fileName));
             this.info(`Copied bundle: ${fileName}`);
             if(this.isProduction) {
                 content = htmlMinifier.minify(content, HTML_MINIFY_OPTIONS);
