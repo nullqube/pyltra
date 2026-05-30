@@ -35,23 +35,11 @@ const HTML_MINIFY_OPTIONS = {
 };
 export class Renderer extends RuntimeAware {
     constructor(input, options = {}) {
-        // This makes the constructor support two calling styles:
-        // 1. new Renderer(project, options)
-        // 2. new Renderer({ project, dataLoader, environment, runtime })
-        // The second style allows for more flexible dependency injection,
-        // while the first style is simpler for common use.
-        // The presence of the "project" property is used to detect which 
-        // style is being used.
-        // If "project" is present, we assume the first style and treat 
-        // the input as the project.
-        // If "project" is not present, we assume the second style and 
-        // destructure the input for dependencies.
-        // This approach allows for backward compatibility while also enabling
-        // more advanced usage when needed.
-        // Note: This is a bit of a hack and can be confusing, so it should be
-        // used with caution. In a more complex application, it might be better
-        // to have separate factory functions or static methods for different 
-        // construction styles instead of overloading the constructor like this.
+        // Supports both new Renderer(project, options) and
+        // new Renderer({ project, dataLoader, environment, runtime }).
+        // If the first argument has a "project" property, treat it as the
+        // dependency object; otherwise treat the first argument as the project
+        // and read optional dependencies from the second argument.
         const hasProjectOption = input && Object.hasOwn(input, 'project');
         const runtime = hasProjectOption ? input.runtime : options.runtime;
         const project = hasProjectOption ? input.project : input;
@@ -69,8 +57,6 @@ export class Renderer extends RuntimeAware {
 
     /**
      * Renders all configured languages, collection items, and bundle files.
-     *
-     * @returns {Promise<Object[]>}
      */
     async renderAll() {
         for (const lang of this.project.getLanguages()) {
@@ -78,14 +64,12 @@ export class Renderer extends RuntimeAware {
         }
 
         await this.renderBundles();
-        return outputs;
     }
 
     /**
      * Renders all page templates and collection item pages for one language.
      *
      * @param {string} lang
-     * @returns {Promise<Object[]>}
      */
     async renderLanguage(lang) {
         await this.renderPages(lang);
@@ -96,10 +80,9 @@ export class Renderer extends RuntimeAware {
      * Renders top-level HTML templates to dist/<lang>/.
      *
      * @param {string} lang
-     * @returns {Promise<Object[]>}
      */
     async renderPages(lang) {
-        const templates = this.templateRepository.getPageTemplates();
+        const templates = await this.templateRepository.getPageTemplates();
 
         for( const template of templates ) {
             const context = await this._getPageContext(lang, template.name);
@@ -121,7 +104,6 @@ export class Renderer extends RuntimeAware {
      * Renders configured collection item pages to dist/<lang>/<collection>/.
      *
      * @param {string} lang
-     * @returns {Promise<Object[]>}
      */
     async renderCollections(lang) {
         const config = this.project.getConfig();
@@ -129,10 +111,11 @@ export class Renderer extends RuntimeAware {
             const {item_template: itemTemplate, items = []} = collectionConfig;
 
             for( const item of items ) {
-                const context = await this.dataLoader.getCollectionItemContext(lang, collectionName, item);
+                const slug = item.slug ?? item;
+                const context = await this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
                 if( !context ) {
                     // console.warn(`No context found for collection item "${item}" in collection "${collectionName}" and language "${lang}". Skipping.`);
-                    this.warn(`Skipping draft: ${lang}/${collectionName}/${item.slug}`);
+                    this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
                     this.warn('If this is unexpected, check the item\'s data file for a "draft" ' + 
                         'property set to true, or missing data files that should provide context for this item.');
                     continue;
@@ -142,15 +125,13 @@ export class Renderer extends RuntimeAware {
                 if(this.isProduction) {
                     htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
                 }
-                await this.outputWriter.writeCollectionItem(lang, collectionName, item, htmlContent);
+                await this.outputWriter.writeCollectionItem(lang, collectionName, slug, htmlContent);
             }
         }
     }
 
     /**
      * Copies configured bundle HTML files from src/ to dist/.
-     *
-     * @returns {Promise<Object[]>}
      */
     async renderBundles() {
         const config = this.project.getConfig();
@@ -162,7 +143,6 @@ export class Renderer extends RuntimeAware {
             }
             await this.outputWriter.writeBundle(fileName, content);
         }
-
     }
 
     _renderTemplate(templateName, context) {
