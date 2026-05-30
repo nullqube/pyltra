@@ -34,7 +34,7 @@ export class ConfigLoader extends RuntimeAware {
      * @param {boolean} [options.validate]
      */
     constructor(options = {}) {
-        super(options.runtime);
+        super({ runtime: options.runtime });
         
         const {
             cwd = process.cwd(),
@@ -55,8 +55,6 @@ export class ConfigLoader extends RuntimeAware {
         /** @type {PathsConfig|null} */
         this._paths = null;
 
-        /** @type {boolean} */
-        this._isProd = isProd;
 
         /** @type {unknown|null} */
         this._rawConfig = null;
