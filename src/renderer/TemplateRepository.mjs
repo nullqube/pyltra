@@ -23,9 +23,7 @@ export class TemplateRepository {
 
     async getPageTemplates() {
         const paths = this.project.getPaths();
-        const templatePattern = typeof paths.get === 'function'
-            ? paths.get('templates')
-            : paths.templates;
+        const templatePattern = paths.get('templates');
 
         const entries = await this.fs.glob(templatePattern, {
             onlyFiles: true,

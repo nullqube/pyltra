@@ -25,17 +25,8 @@ export class AssetPipeline {
 
     async copyAssets() {
 
-        const srcAssets = path.join(
-            this.project.cwd,
-            this.project.paths.src,
-            'assets'
-        );
-
-        const distAssets = path.join(
-            this.project.cwd,
-            this.project.paths.dist,
-            'assets'
-        );
+        const srcAssets = path.join(this.project.getSourcePath(), 'assets');
+        const distAssets = path.join(this.project.getDistPath(), 'assets');
 
         if (!fs.existsSync(srcAssets)) return;
 

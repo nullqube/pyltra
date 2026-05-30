@@ -5,7 +5,7 @@ import nunjucks from 'nunjucks';
 import { registerTemplateFilters } from './TemplateFilters.mjs';
 
 function normalizeTemplateDirectory(project) {
-    const templatesPath = project.getPaths().templates || 'src/templates/*.html';
+    const templatesPath = project.getPaths().get('templates');
     const normalized = templatesPath.replaceAll('\\', '/');
 
     if (!normalized.includes('*')) {
