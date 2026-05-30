@@ -216,7 +216,13 @@ export class DataLoader extends RuntimeAware {
     }
 
     _loadPageData(pageName, pageConfig, lang) {
-        const { file = '', fallback = {} } = pageConfig ?? {};
+        // nowi t support shorthand as well
+        // pages:
+        //   about: data/${lang}.about.yaml
+        const normalizedConfig = typeof pageConfig === 'string'
+            ? { file: pageConfig }
+            : pageConfig ?? {};
+        const { file = '', fallback = {} } = normalizedConfig;
         const fileName = file
             ? replaceLanguageToken(file, lang)
             : `${lang}/${pageName}.yaml`;
