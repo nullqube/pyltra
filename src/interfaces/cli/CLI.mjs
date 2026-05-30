@@ -73,6 +73,7 @@ export class CLI {
             const opts = thisCommand.opts();
             const root = resolveProjectRoot();
             
+            console.log(`Project root resolved to: ${root}`);
             const runtime = Runtime.fromCLI({
                 environment: opts.prod ? 'production' : 'development',
                 command: thisCommand.name(),
@@ -115,9 +116,9 @@ export class CLI {
             .action(async () => {
                 try {
                     await this.engine.validate();
-                    console.log('Project validated successfully!');
+                    this.engine.success('Project validated successfully.');
                 } catch (err) {
-                    console.error('Error validating project:', err.message);
+                    this.engine.error(`Validation failed: ${err.message}`, { layer: 'cli' });
                 }
             });
 
@@ -127,9 +128,9 @@ export class CLI {
             .action(async () => {
                 try {
                     await this.engine.build();
-                    console.log('Project built successfully!');
+                    this.engine.success('Project built successfully.');
                 } catch (err) {
-                    console.error('Error building project:', err.message);
+                    this.engine.error(`Build failed: ${err.message}`, { layer: 'cli' });
                 }
             });
 
@@ -139,9 +140,9 @@ export class CLI {
             .action(async () => {
                 try {
                     await this.engine.start();
-                    console.log('Dev server started successfully!');
+                    this.engine.success('Dev server started successfully.');
                 } catch (err) {
-                    console.error('Error starting dev server:', err.message);
+                    this.engine.error(`Dev server failed: ${err.message}`, { layer: 'cli' });
                 }
             });
 
@@ -186,7 +187,7 @@ export class CLI {
             );
 
             await this.engine.init(options, responses);
-            console.log('Project initialized successfully!');
+            this.engine.success('Project initialized successfully.');
         // } catch (err) {
         //     console.error('Error initializing project:', err.message);
         // }
