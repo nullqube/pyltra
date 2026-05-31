@@ -60,16 +60,27 @@ export class AssetPipeline extends RuntimeAware {
                 file.replace(/\.scss$/i, '.css')
             );
             const result = sass.compile(sourcePath, {
-                style: this.isProduction ? 'compressed' : 'expanded'
+                style: this.isProduction ? 'compressed' : 'expanded',
+                sourceMap: !this.isProduction,
+                sourceMapIncludeSources: !this.isProduction
             });
             const processed = await postcss([autoprefixer()]).process(result.css, {
                 from: sourcePath,
                 to: outputPath,
-                map: false
+                map: this.isProduction
+                    ? false
+                    : {
+                        prev: result.sourceMap,
+                        inline: false,
+                        annotation: `${path.basename(outputPath)}.map`
+                    }
             });
 
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
             fs.writeFileSync(outputPath, processed.css);
+            if (processed.map) {
+                fs.writeFileSync(`${outputPath}.map`, processed.map.toString());
+            }
         }));
     }
 
@@ -130,6 +141,8 @@ export class AssetPipeline extends RuntimeAware {
 
         await Promise.all(files.map(async file => {
             const filePath = path.join(cssRoot, file);
+            if (fs.existsSync(`${filePath}.map`)) return;
+
             const result = await postcss([]).process(
                 fs.readFileSync(filePath, 'utf8'),
                 {
