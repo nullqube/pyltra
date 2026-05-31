@@ -141,6 +141,7 @@ export class AssetPipeline extends RuntimeAware {
 
         await Promise.all(files.map(async file => {
             const filePath = path.join(cssRoot, file);
+            if (!fs.existsSync(filePath)) return;
             if (fs.existsSync(`${filePath}.map`)) return;
 
             const result = await postcss([]).process(
