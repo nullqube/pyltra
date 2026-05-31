@@ -27,6 +27,8 @@ function clonePlainValue(value) {
  */
 function replaceLanguageToken(value, language) {
     return value
+        .replaceAll('${lang}', language)
+        .replaceAll('${language}', language)
         .replaceAll('{lang}', language)
         .replaceAll('{language}', language);
 }
