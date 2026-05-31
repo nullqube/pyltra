@@ -44,8 +44,9 @@ export class DevServer extends RuntimeAware{
 
         chokidar.watch(srcPath).on('change', async () => {
             if( this.shouldLogVerbose ) {
-                console.log('File changed. Rebuilding...');
+                this.info('File changed. Rebuilding...');
             }
+            this.project.getData()?.invalidateCache?.();
             await this.buildManager.build();
             this.server.reload();
         });
