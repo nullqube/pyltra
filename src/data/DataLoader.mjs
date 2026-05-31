@@ -11,8 +11,24 @@ function clonePlainValue(value) {
     return structuredClone(value);
 }
 
-function replaceLanguageToken(value, lang) {
-    return String(value).replaceAll('${lang}', lang);
+/**
+ * @feature CONFIG_LANGUAGE_TOKENS
+ * @publicContract
+ * @since 0.2.0
+ *
+ * Supports language placeholders inside config paths.
+ *
+ * @tokens
+ * - {lang}
+ * - {language}
+ *
+ * @docs docs/config-language.md#language-tokens
+ * @tests tests/config/language-tokens.test.mjs
+ */
+function replaceLanguageToken(value, language) {
+    return value
+        .replaceAll('{lang}', language)
+        .replaceAll('{language}', language);
 }
 
 function getExtension(fileName) {
@@ -215,10 +231,36 @@ export class DataLoader extends RuntimeAware {
         throw new Error(`Unsupported file type: ${type}`);
     }
 
+    /**
+     * @feature CONFIG_PAGE_DATA_SHORTHAND
+     * @publicContract
+     * @since 0.2.0
+     *
+     * Allows page data config to be written in shorthand form.
+     *
+     * Full form:
+     *   pages:
+     *     about:
+     *       file: data/{lang}.about.yaml
+     *       fallback: {}
+     *
+     * Shorthand form:
+     *   pages:
+     *     about: data/{lang}.about.yaml
+     *
+     * Contract:
+     * - If pageConfig is a string, it is treated as `{ file: pageConfig }`.
+     * - `{lang}` and `{language}` tokens are supported inside the file path.
+     * - If no file is provided, Pyltra falls back to `${lang}/${pageName}.yaml`.
+     * - If loading fails, fallback data is returned.
+     *
+     * Docs:
+     * - docs/config-language.md#page-data-shorthand
+     *
+     * Tests:
+     * - tests/config/page-data-shorthand.test.mjs
+     */
     _loadPageData(pageName, pageConfig, lang) {
-        // nowi t support shorthand as well
-        // pages:
-        //   about: data/${lang}.about.yaml
         const normalizedConfig = typeof pageConfig === 'string'
             ? { file: pageConfig }
             : pageConfig ?? {};
