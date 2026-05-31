@@ -85,12 +85,17 @@ export class Renderer extends RuntimeAware {
         const templates = await this.templateRepository.getPageTemplates();
 
         for( const template of templates ) {
-            const context = await this._getPageContext(lang, template.name);
+            const result = await this._getPageContext(lang, template.name);
 
-            if( !context ) {
-                console.warn(`No context found for page "${template.name}" in language "${lang}". Skipping.`);
+            if (result.status === 'skip') {
+                if (result.reason === 'draft') {
+                    this.warn(`Skipping draft page: ${lang}/${template.name}`);
+                    this.warn('If this is unexpected, check the page data file for a "draft" property set to true.');
+                }
                 continue;
             }
+
+            const context = result.context;
             this.info(`Building ${lang}/${template.name}`);
             let htmlContent = this._renderTemplate(template.fileName, context);
             if(this.isProduction) {
@@ -112,14 +117,19 @@ export class Renderer extends RuntimeAware {
 
             for( const item of items ) {
                 const slug = item.slug ?? item;
-                const context = await this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
-                if( !context ) {
-                    // console.warn(`No context found for collection item "${item}" in collection "${collectionName}" and language "${lang}". Skipping.`);
-                    this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
-                    this.warn('If this is unexpected, check the item\'s data file for a "draft" ' + 
-                        'property set to true, or missing data files that should provide context for this item.');
+                const result = await this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
+                if (result.status === 'skip') {
+                    if (result.reason === 'draft') {
+                        this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
+                        this.warn('If this is unexpected, check the item\'s data file for a "draft" property set to true.');
+                    } else if (result.reason === 'missing-item') {
+                        this.warn(`Skipping missing collection item: ${lang}/${collectionName}/${slug}`);
+                        this.warn('If this is unexpected, check that the item data file exists and provides a matching slug.');
+                    }
                     continue;
                 }
+
+                const context = result.context;
                 this.info(`Building ${lang}/${collectionName}/${slug}`);
                 let htmlContent = this._renderTemplate(itemTemplate, context);
                 if(this.isProduction) {
@@ -157,9 +167,11 @@ export class Renderer extends RuntimeAware {
     }
 
     _getPageContext(lang, pageName) {
-        const context = this.dataLoader.getPageContext(lang, pageName);
+        const result = this.dataLoader.getPageContext(lang, pageName);
 
-        if (!context) return null;
+        if (result.status !== 'render') {
+            return result;
+        }
 
         const config = this.project.getConfig();
         const collections = {};
@@ -169,8 +181,11 @@ export class Renderer extends RuntimeAware {
         }
 
         return {
-            ...context,
-            ...collections
+            ...result,
+            context: {
+                ...result.context,
+                ...collections
+            }
         };
     }
 }

@@ -89,14 +89,14 @@ export class DataLoader extends RuntimeAware {
         this._assertLanguage(lang);
 
         if (this.cache.has(lang)) {
-            if( !this.shouldLogVerbose ) {
-                console.log(`Using cached data for "${lang}"`);
+            if( this.shouldLogVerbose ) {
+                this.debug(`Using cached data for "${lang}"`);
             }
             return clonePlainValue(this.cache.get(lang));
         }
 
         if( this.shouldLogVerbose ) {
-            console.log(`Loading data for "${lang}"...`);
+            this.info(`Loading data for "${lang}"...`);
         }
 
         const config = this.project.getConfig();
@@ -134,12 +134,11 @@ export class DataLoader extends RuntimeAware {
     }
 
     /**
-     * Builds context for one top-level page. Returns null for production drafts,
-     * matching the old render task's skip behavior.
+     * Builds context for one top-level page and explains skip decisions.
      *
      * @param {string} lang
      * @param {string} pageName
-     * @returns {Object|null}
+     * @returns {{status: 'render'|'skip', reason: string|null, context: Object|null}}
      */
     getPageContext(lang, pageName) {
         const pageData = this.load(lang);
@@ -154,14 +153,23 @@ export class DataLoader extends RuntimeAware {
         // or should we always return an object with a _draft flag?
         // For now, we can at least add a _draft flag to the item 
         // context so templates can handle it if needed.
+
         if (this.isProduction && isDraft(page)) {
-            return null;
+            return {
+                status: 'skip',
+                reason: 'draft',
+                context: null
+            };
         }
 
         return {
-            activePage: pageName,
-            lang,
-            ...pageData
+            status: 'render',
+            reason: null,
+            context: {
+                activePage: pageName,
+                lang,
+                ...pageData
+            }
         };
     }
 
@@ -183,32 +191,47 @@ export class DataLoader extends RuntimeAware {
     }
 
     /**
-     * Builds context for one collection item page. Returns null for production
-     * drafts, matching the old render task's skip behavior.
+     * Builds context for one collection item page and explains skip decisions.
      *
      * @param {string} lang
      * @param {string} collectionName
      * @param {string} slug
-     * @returns {Object|null}
+     * @returns {{status: 'render'|'skip', reason: string|null, context: Object|null}}
      */
     getCollectionItemContext(lang, collectionName, slug) {
         const pageData = this.load(lang);
         const rawCollection = pageData[collectionName] || { items: [] };
         const rawItem = rawCollection.items.find(candidate => candidate.slug === slug);
 
-        if (!rawItem || (this.isProduction && isDraft(rawItem))) {
-            return null;
+        if (!rawItem) {
+            return {
+                status: 'skip',
+                reason: 'missing-item',
+                context: null
+            };
+        }
+
+        if (this.isProduction && isDraft(rawItem)) {
+            return {
+                status: 'skip',
+                reason: 'draft',
+                context: null
+            };
         }
 
         const collection = this.getCollection(lang, collectionName);
         const item = collection.items.find(candidate => candidate.slug === slug);
 
         return {
-            ...pageData,
-            [collectionName]: collection,
-            lang,
-            article: item,
-            collection: collectionName
+            status: 'render',
+            reason: null,
+            context: {
+                ...pageData,
+                [collectionName]: collection,
+                lang,
+                article: item,
+                collection: collectionName
+            }
         };
     }
 
