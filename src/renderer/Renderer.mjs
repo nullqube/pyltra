@@ -88,19 +88,15 @@ export class Renderer extends RuntimeAware {
             const result = await this._getPageContext(lang, template.name);
 
             if (result.status === 'skip') {
-                if (result.reason === 'draft') {
-                    this.warn(`Skipping draft page: ${lang}/${template.name}`);
-                    this.warn('If this is unexpected, check the page data file for a "draft" property set to true.');
-                }
+                this.#warnSkippedPage(lang, pageName, result.reason);
                 continue;
             }
 
             const context = result.context;
             this.info(`Building ${lang}/${template.name}`);
             let htmlContent = this._renderTemplate(template.fileName, context);
-            if(this.isProduction) {
-                htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
-            }
+            htmlContent = this.#maybeMinify(htmlContent);
+
             await this.outputWriter.writePage(lang, template.name, htmlContent);
         }
     }
@@ -114,23 +110,36 @@ export class Renderer extends RuntimeAware {
         const config = this.project.getConfig();
         for( const [collectionName, collectionConfig] of Object.entries(config.collections) ) {
             const {item_template: itemTemplate, items = []} = collectionConfig;
-
+            if (!itemTemplate) {
+                this.warn(`Skipping collection "${collectionName}" because item_template is missing.`);
+                continue;
+            }
             for( const item of items ) {
                 const slug = item.slug ?? item;
+                if (!slug) {
+                    // TODO: This should be a validation error, not a warning. 
+                    //  The collection item is malformed and we can't render it at all,
+                    //  so we should fail the build rather than silently skip it.
+                    // Maybe we should make one with our default formula 
+                    // something like: slug=collectionName + index, and warn that we're doing that?
+                    this.warn(`Skipping invalid item in collection "${collectionName}".`);
+                    continue;
+                }
                 const result = await this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
                 if (result.status === 'skip') {
-                    if (result.reason === 'draft') {
-                        this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
-                        this.warn('If this is unexpected, check the item\'s data file for a "draft" property set to true.');
-                    } else if (result.reason === 'missing-item') {
-                        this.warn(`Skipping missing collection item: ${lang}/${collectionName}/${slug}`);
-                        this.warn('If this is unexpected, check that the item data file exists and provides a matching slug.');
-                    }
+                    this.#warnSkippedCollectionItem(
+                        lang,
+                        collectionName,
+                        slug,
+                        result.reason
+                    );
+
                     continue;
                 }
 
                 const context = result.context;
                 this.info(`Building ${lang}/${collectionName}/${slug}`);
+                // this.#maybeMinify(html);
                 let htmlContent = this._renderTemplate(itemTemplate, context);
                 if(this.isProduction) {
                     htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
@@ -173,12 +182,7 @@ export class Renderer extends RuntimeAware {
             return result;
         }
 
-        const config = this.project.getConfig();
-        const collections = {};
-
-        for (const collectionName of Object.keys(config.collections)) {
-            collections[collectionName] = this.dataLoader.getCollection(lang, collectionName);
-        }
+        const collections = this.#getCollectionsContext(lang);
 
         return {
             ...result,
@@ -187,5 +191,51 @@ export class Renderer extends RuntimeAware {
                 ...collections
             }
         };
+    }
+
+    #getCollectionsContext(lang) {
+        const collectionConfigs = this.project.getConfig().collections ?? {};
+        const collections = {};
+
+        for (const collectionName of Object.keys(collectionConfigs)) {
+            collections[collectionName] =
+                this.dataLoader.getCollection(lang, collectionName);
+        }
+
+        return collections;
+    }
+
+    #maybeMinify(html) {
+        if (!this.runtime.isProduction()) {
+            return html;
+        }
+
+        return minify(html, HTML_MINIFY_OPTIONS);
+    }
+
+    #warnSkippedPage(lang, pageName, reason) {
+        if (reason === 'draft') {
+            this.warn(`Skipping draft page: ${lang}/${pageName}`);
+            this.warn('If this is unexpected, check the page data file for draft=true.');
+            return;
+        }
+
+        this.warn(`Skipping page: ${lang}/${pageName}`);
+    }
+
+    #warnSkippedCollectionItem(lang, collectionName, slug, reason) {
+        if (reason === 'draft') {
+            this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
+            this.warn(`If this is unexpected, check the item's data file for draft=true.`);
+            return;
+        }
+
+        if (reason === 'missing-item') {
+            this.warn(`Skipping missing collection item: ${lang}/${collectionName}/${slug}`);
+            this.warn('If this is unexpected, check that the item data file exists and provides a matching slug.');
+            return;
+        }
+
+        this.warn(`Skipping collection item: ${lang}/${collectionName}/${slug}`);
     }
 }
