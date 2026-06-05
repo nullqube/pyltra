@@ -85,10 +85,10 @@ export class Renderer extends RuntimeAware {
         const templates = await this.templateRepository.getPageTemplates();
 
         for( const template of templates ) {
-            const result = await this._getPageContext(lang, template.name);
+            const result = this._getPageContext(lang, template.name);
 
             if (result.status === 'skip') {
-                this.#warnSkippedPage(lang, pageName, result.reason);
+                this.#warnSkippedPage(lang, template.name, result.reason);
                 continue;
             }
 
@@ -125,7 +125,7 @@ export class Renderer extends RuntimeAware {
                     this.warn(`Skipping invalid item in collection "${collectionName}".`);
                     continue;
                 }
-                const result = await this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
+                const result = this.dataLoader.getCollectionItemContext(lang, collectionName, slug);
                 if (result.status === 'skip') {
                     this.#warnSkippedCollectionItem(
                         lang,
@@ -139,11 +139,8 @@ export class Renderer extends RuntimeAware {
 
                 const context = result.context;
                 this.info(`Building ${lang}/${collectionName}/${slug}`);
-                // this.#maybeMinify(html);
                 let htmlContent = this._renderTemplate(itemTemplate, context);
-                if(this.isProduction) {
-                    htmlContent = htmlMinifier.minify(htmlContent, HTML_MINIFY_OPTIONS);
-                }
+                htmlContent = this.#maybeMinify(htmlContent);
                 await this.outputWriter.writeCollectionItem(lang, collectionName, slug, htmlContent);
             }
         }
@@ -157,9 +154,7 @@ export class Renderer extends RuntimeAware {
         for( const fileName of config.bundles || [] ) {
             let content = await this.fsAdapter.readText(path.join(this.project.getSourcePath(), fileName));
             this.info(`Copied bundle: ${fileName}`);
-            if(this.isProduction) {
-                content = htmlMinifier.minify(content, HTML_MINIFY_OPTIONS);
-            }
+            content = this.#maybeMinify(content);
             await this.outputWriter.writeBundle(fileName, content);
         }
     }
@@ -206,11 +201,11 @@ export class Renderer extends RuntimeAware {
     }
 
     #maybeMinify(html) {
-        if (!this.runtime.isProduction()) {
+        if (!this.runtime.isProduction) {
             return html;
         }
 
-        return minify(html, HTML_MINIFY_OPTIONS);
+        return htmlMinifier.minify(html, HTML_MINIFY_OPTIONS);
     }
 
     #warnSkippedPage(lang, pageName, reason) {
