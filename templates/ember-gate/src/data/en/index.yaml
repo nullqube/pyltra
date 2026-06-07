@@ -1,0 +1,33 @@
+site:
+  name: "Ember Gate"
+  initials: "EG"
+  description: "A cinematic Pyltra starter inspired by warm thresholds and bold vows."
+
+page:
+  title: "Ember Gate"
+  description: "A dark editorial landing page with a glowing sunset portal."
+  theme: "ember"
+  hero_image: "../assets/img/hero-portal.webp"
+  hero_image_alt: "A glowing arched doorway framing an orange sunset over mountains, water, and dark steps."
+  line_one: "Dream it."
+  line_two: "Build it."
+  line_three: "Live it."
+  ornament: "◆"
+  kicker_top: "Not just a life,"
+  kicker_bottom: "a story worth telling."
+  portal_label: "Sunset over the valley"
+  footer: "Shape the story, then ship it."
+
+  nav:
+    - label: "Vision"
+      url: "#vision"
+    - label: "Start"
+      url: "#start"
+
+  cards:
+    - title: "Dream"
+      description: "Give the idea room to glow before you name every edge."
+    - title: "Build"
+      description: "Turn the vision into structure, page by page."
+    - title: "Live"
+      description: "Publish the thing and let it become part of the world."

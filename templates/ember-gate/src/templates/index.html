@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ index.page.description | default(index.site.description) }}">
+    <title>{{ index.page.title | default(index.site.name) }}</title>
+    <link rel="stylesheet" href="../assets/css/{{ index.page.theme | default('ember') }}.css">
+</head>
+<body>
+    <main class="poster">
+        <section class="copy-panel" id="vision" aria-labelledby="hero-title">
+            <a class="brand" href="./index.html" aria-label="{{ index.site.name }} home">
+                <span class="brand-mark">{{ index.site.initials }}</span>
+                <span>{{ index.site.name }}</span>
+            </a>
+
+            <h1 id="hero-title">
+                <span>{{ index.page.line_one }}</span>
+                <span class="accent">{{ index.page.line_two }}</span>
+                <span>{{ index.page.line_three }}</span>
+            </h1>
+
+            <div class="divider" aria-hidden="true">
+                <span></span>
+                <b>{{ index.page.ornament }}</b>
+                <span></span>
+            </div>
+
+            <p class="kicker">
+                <span>{{ index.page.kicker_top }}</span>
+                <span>{{ index.page.kicker_bottom }}</span>
+            </p>
+
+            <div class="branch" aria-hidden="true">
+                <span class="stem main"></span>
+                <span class="stem side one"></span>
+                <span class="stem side two"></span>
+                <span class="leaf l1"></span>
+                <span class="leaf l2"></span>
+                <span class="leaf l3"></span>
+                <span class="leaf l4"></span>
+                <span class="leaf l5"></span>
+                <span class="leaf l6"></span>
+                <span class="leaf l7"></span>
+                <span class="leaf l8"></span>
+                <span class="vase"></span>
+            </div>
+        </section>
+
+        <section class="scene-panel" id="start" aria-label="{{ index.page.portal_label }}">
+            <nav class="nav" aria-label="Primary navigation">
+                {% for item in index.page.nav %}
+                <a href="{{ item.url }}">{{ item.label }}</a>
+                {% endfor %}
+            </nav>
+
+            <figure class="portal-art">
+                <img src="{{ index.page.hero_image }}" alt="{{ index.page.hero_image_alt }}">
+            </figure>
+        </section>
+
+        <section class="card-strip" aria-label="Starter sections">
+            {% for card in index.page.cards %}
+            <article>
+                <h2>{{ card.title }}</h2>
+                <p>{{ card.description }}</p>
+            </article>
+            {% endfor %}
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>{{ index.page.footer }}</p>
+        <p>Edit <code>src/data/en/index.yaml</code> to make it yours.</p>
+    </footer>
+</body>
+</html>

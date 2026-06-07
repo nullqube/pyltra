@@ -1,0 +1,20 @@
+site:
+  name: "Ember Gate"
+  description: "A cinematic Pyltra starter inspired by warm thresholds and bold vows."
+
+languages:
+  - code: en
+    name: English
+
+pages:
+  index:
+    file: "en/index.yaml"
+    fallback:
+      title: "Ember Gate"
+      theme: "ember"
+
+collections: {}
+
+bundles:
+  - "404.html"
+  - "50x.html"
