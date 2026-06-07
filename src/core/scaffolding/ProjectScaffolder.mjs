@@ -21,27 +21,28 @@ export class ProjectScaffolder {
         // 5. Create output directory (empty)
         // 6. Optionally create README.md and .gitignore
 
+        const { projectName, projectDescription, createReadme, createGitignore } = responses;
+        const __filename   = fileURLToPath(import.meta.url);
+        const __dirname    = path.dirname(__filename);
+        const TEMPLATE_DIR = path.resolve(__dirname, '../../../templates');
+        const availableTemplates = fs.readdirSync(TEMPLATE_DIR)
+            .filter(name => fs.statSync(path.join(TEMPLATE_DIR, name)).isDirectory());
         let { template = 'empty' } = options || {};
 
-        if (['empty', 'basic'].includes(template)) {
+        if (availableTemplates.includes(template)) {
             console.log(`You entered template: "${template}"`);
         } else {
             console.log(`Template "${template}" not recognised, defaulting to "empty"`);
+            console.log(`Available templates: ${availableTemplates.join(', ')}`);
             template = 'empty';
         }
 
-        const { projectName, projectDescription, createReadme, createGitignore } = responses;
+        const templatePath = path.join(TEMPLATE_DIR, template);
         console.log('\nInitializing project...');
         console.log(`Creating project: ${projectName}`);
 
         const projectDir   = projectName.trim();
         const projectPath  = path.resolve(process.cwd(), projectDir);
-
-        // Guard: validate template exists before touching the filesystem
-        const __filename   = fileURLToPath(import.meta.url);
-        const __dirname    = path.dirname(__filename);
-        const TEMPLATE_DIR = path.resolve(__dirname, '../../../templates');
-        const templatePath = path.join(TEMPLATE_DIR, template);
 
         if (!fs.existsSync(templatePath)) {
             throw new Error(
