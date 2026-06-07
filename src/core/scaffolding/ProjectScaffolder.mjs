@@ -58,9 +58,10 @@ export class ProjectScaffolder {
             console.log(`Directory "${projectDir}" already exists, continuing...`);
         }
 
-        this.#initWithTemplate(template, projectPath, templatePath);
-        this.#createFoldersStructure(projectPath);
-        this.#createDefaultConfig(projectPath);
+        const scaffolder = new ProjectScaffolder();
+        scaffolder.#initWithTemplate(template, projectPath, templatePath);
+        scaffolder.#createFoldersStructure(projectPath);
+        scaffolder.#createDefaultConfig(projectPath);
 
         if (createReadme) {
             const readmeContent = [
