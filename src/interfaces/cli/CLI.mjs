@@ -69,14 +69,20 @@ export class CLI {
             process.exit(1);
         }
 
-        program.hook('preAction', (thisCommand) => {
+        program.hook('preAction', (thisCommand, actionCommand) => {
             const opts = thisCommand.opts();
-            const root = resolveProjectRoot();
+            const commandName = actionCommand.name();
+            const root = commandName === 'init'
+                ? process.cwd()
+                : resolveProjectRoot();
             
-            console.log(`Project root resolved to: ${root}`);
+            if (commandName !== 'init') {
+                console.log(`Project root resolved to: ${root}`);
+            }
+
             const runtime = Runtime.fromCLI({
                 environment: opts.prod ? 'production' : 'development',
-                command: thisCommand.name(),
+                command: commandName,
                 debug: opts.debug || false,
                 verbose: opts.verbose || false,
                 silent: opts.silent || false,
