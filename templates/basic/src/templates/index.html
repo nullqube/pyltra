@@ -1,58 +1,66 @@
-<!DOCTYPE html>
-<html lang="{{ lang.code }}">
+<!doctype html>
+<html lang="{{ lang }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title | default('Welcome') }}</title>
-    <link rel="stylesheet" href="../assets/css/index.css?1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ index.page.description | default(index.site.description) }}">
+    <title>{{ index.page.title | default(index.site.name) }}</title>
+    <link rel="stylesheet" href="../assets/css/{{ index.page.theme | default('dark') }}.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>{{ page.heading | default('Welcome to ' + site.name) }}</h1>
-            <p class="subtitle">{{ page.tagline | default(site.description) }}</p>
-        </header>
-        
-        <main>
-            <div class="content">
-                {{ page.content | default(site.description) | safe }}
-            </div>
-            
-            {% if page.features %}
-            <div class="features">
-                {% for feature in page.features %}
-                <div class="feature">
-                    <h3>{{ feature.title }}</h3>
-                    <p>{{ feature.description }}</p>
-                </div>
+    <header class="site-header">
+        <a class="brand" href="./index.html" aria-label="{{ index.site.name }} home">
+            <span class="brand-mark" aria-hidden="true">{{ index.site.initials | default('P') }}</span>
+            <span>{{ index.site.name }}</span>
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+            {% for item in index.page.nav %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+            {% endfor %}
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero" id="home">
+            <p class="eyebrow">{{ index.page.eyebrow }}</p>
+            <h1>{{ index.page.heading }}</h1>
+            <p class="lede">{{ index.page.lede }}</p>
+
+            <div class="actions" aria-label="Primary actions">
+                {% for action in index.page.actions %}
+                <a class="button {{ action.variant | default('secondary') }}" href="{{ action.url }}">
+                    {{ action.label }}
+                </a>
                 {% endfor %}
             </div>
-            {% endif %}
-            
-            {% if page.call_to_action %}
-            <div style="text-align: center; margin: 2rem 0;">
-                <a href="{{ page.call_to_action.url }}" class="btn" style="
-                    display: inline-block;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 1rem 2rem;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 500;
-                    transition: transform 0.2s;
-                " 
-                onmouseover="this.style.transform='scale(1.05)'" 
-                onmouseout="this.style.transform='scale(1)'">
-                    {{ page.call_to_action.text }}
-                </a>
+        </section>
+
+        <section class="section" id="features" aria-labelledby="features-title">
+            <div class="section-heading">
+                <p class="eyebrow">{{ index.page.features_eyebrow }}</p>
+                <h2 id="features-title">{{ index.page.features_title }}</h2>
             </div>
-            {% endif %}
-        </main>
-        
-        <footer>
-            <p>&copy; {{ 'now' | date('Y') }} {{ site.name }}. {{ page.footer_text | default('All rights reserved.') }}</p>
-        </footer>
-    </div>
+
+            <div class="feature-grid">
+                {% for feature in index.page.features %}
+                <article class="feature-card">
+                    <span class="feature-number">{{ loop.index }}</span>
+                    <h3>{{ feature.title }}</h3>
+                    <p>{{ feature.description }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="statement" id="about">
+            <p>{{ index.page.statement }}</p>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>{{ index.page.footer }}</p>
+        <p>Change <code>index.page.theme</code> to <code>light</code> or <code>dark</code>.</p>
+    </footer>
 </body>
 </html>

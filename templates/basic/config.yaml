@@ -1,0 +1,21 @@
+site:
+  name: "Pyltra Starter"
+  description: "A calm, elegant starter site for Pyltra."
+
+languages:
+  - code: en
+    name: English
+
+pages:
+  index:
+    file: "en/index.yaml"
+    fallback:
+      title: "Pyltra Starter"
+      heading: "Build something quiet and sharp."
+      theme: "dark"
+
+collections: {}
+
+bundles:
+  - "404.html"
+  - "50x.html"

@@ -1,35 +1,39 @@
 site:
-  name: "My Project"
-  description: "A modern, elegant web project template"
+  name: "Pyltra Starter"
+  initials: "Py"
+  description: "A calm, elegant starter site for Pyltra."
 
 page:
-  title: "Welcome to My Project"
-  heading: "Welcome to My Project"
-  tagline: "Simple, elegant, and powerful"
-  content: |
-    <p>This is a beautifully designed template that combines modern web standards with elegant styling. 
-    Perfect for getting started with your next web project.</p>
-    
-    <p>Features include:</p>
-    <ul>
-      <li>Responsive design that works on all devices</li>
-      <li>Clean, modern typography</li>
-      <li>Beautiful gradient backgrounds</li>
-      <li>Easy to customize and extend</li>
-    </ul>
+  title: "Pyltra Starter"
+  description: "A polished default starter template for Pyltra projects."
+  theme: "dark"
+  eyebrow: "Static sites, composed cleanly"
+  heading: "A refined starting point for your next Pyltra project."
+  lede: "This starter keeps the first screen useful: clear copy, responsive structure, tasteful spacing, and theme files you can swap without touching the template."
 
+  nav:
+    - label: "Features"
+      url: "#features"
+    - label: "About"
+      url: "#about"
+
+  actions:
+    - label: "Start editing"
+      url: "#features"
+      variant: "primary"
+    - label: "Read the docs"
+      url: "https://github.com/nullqube/pyltra"
+      variant: "secondary"
+
+  features_eyebrow: "What is included"
+  features_title: "A small foundation with good taste."
   features:
-    - title: "Responsive Design"
-      description: "Looks great on desktop, tablet, and mobile devices with fluid layouts and adaptive components."
-    
-    - title: "Modern Styling"
-      description: "Clean aesthetic with subtle animations and professional color schemes that can be easily customized."
-    
-    - title: "Easy to Maintain"
-      description: "Well-structured code with clear separation of concerns and documented components."
+    - title: "Theme choice"
+      description: "Use dark.css or light.css by changing index.page.theme in this data file."
+    - title: "Template-ready data"
+      description: "Content, navigation, actions, and feature cards live in YAML so the HTML stays calm."
+    - title: "Responsive layout"
+      description: "The starter is built for phones, tablets, and desktops without extra framework weight."
 
-  call_to_action:
-    text: "Get Started"
-    url: "/getting-started"
-
-  footer_text: "Built with care and attention to detail."
+  statement: "Pyltra works best when structure is simple and intent is visible. This boilerplate gives you enough shape to begin, and enough restraint to make it yours."
+  footer: "Built with Pyltra."
