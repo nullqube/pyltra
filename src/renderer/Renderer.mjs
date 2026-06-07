@@ -206,7 +206,7 @@ export class Renderer extends RuntimeAware {
     }
 
     #maybeMinify(html) {
-        if (!this.runtime.isProduction()) {
+        if (!this.isProduction) {
             return html;
         }
 
