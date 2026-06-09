@@ -1,38 +1,17 @@
 import { Command } from "commander";
 
-export class CommanderCLIAdapter {
+// Only parse and normalize the cli input here, the actual command handling logic should be implemented in the engine
+// 1. Parse the command and options using commander
+// 2. Normalize the input into a consistent format
+// 3. Pass the normalized input to the engine for handling
+export class CLIAdapter {
     constructor({ name = "pyltra", version = "0.0.0" } = {}) {
         this.name = name;
         this.version = version;
         this.program = new Command();
     }
 
-    async run() {
-        return await this._run(async (commandInput) => {
-            const logger = createLogger(commandInput.flags);
-
-            const runtime = Runtime.fromCLI({
-                command: commandInput.command,
-                environment: commandInput.flags.env,
-                debug: commandInput.flags.debug,
-                verbose: commandInput.flags.verbose,
-                silent: commandInput.flags.silent,
-                watch: commandInput.flags.watch,
-                ci: commandInput.flags.ci,
-                version: pkg.version,
-                logger,
-            });
-
-            const engine = new PyltraEngine({
-                runtime,
-                cwd: process.cwd(),
-            });
-
-            await engine.run(commandInput);
-        });
-    }
-
-    async _run(handler) {
+    async run(handler) {
         this.program
             .name(this.name)
             .version(this.version)

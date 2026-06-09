@@ -23,4 +23,36 @@ process.on('SIGINT', () => {
 /* Run the CLI           */
 /* -------------------- */
 // cli.run(process.argv);
-adapter.run();
+await adapter.run(async (commandInput) => {
+    const logger = new Logger({
+                runtime,
+                prefix: "pyltra",
+                transports: [
+                    new ConsoleTransport({
+                        runtime,
+                        level: "debug",
+                        timestamp: true,
+                        useColors: true,
+                    })
+                ],
+            });
+    const runtime = Runtime.fromCLI({
+        command: commandInput.command,
+        environment: commandInput.flags.env,
+        debug: commandInput.flags.debug,
+        verbose: commandInput.flags.verbose,
+        silent: commandInput.flags.silent,
+        watch: commandInput.flags.watch,
+        ci: commandInput.flags.ci,
+        version: pkg.version,
+        logger,
+    });
+
+    const engine = new PyltraEngine({
+        runtime,
+        cwd: process.cwd(),
+    });
+
+    await engine.run(commandInput);
+});
+/* -------------------- */
