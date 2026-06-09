@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 
-import { CLI } from '../src/interfaces/cli/CLI.mjs';
+import { CLIAdapter } from '../src/interfaces/cli/CLIAdapter.mjs';
 
 /* -------------------- */
 /* Setup                */
 /* -------------------- */
-const cli = new CLI();
-
+// const cli = new CLI();
+const adapter = new CommanderCLIAdapter({
+    name: "pyltra",
+    version: pkg.version,
+});
 /* -------------------- */
 /* Graceful shutdown    */
 /* -------------------- */
@@ -19,4 +22,5 @@ process.on('SIGINT', () => {
 /* -------------------- */
 /* Run the CLI           */
 /* -------------------- */
-cli.run(process.argv);
+// cli.run(process.argv);
+adapter.run();
