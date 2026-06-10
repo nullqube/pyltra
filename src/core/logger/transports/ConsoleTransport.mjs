@@ -6,7 +6,7 @@
  * and ANSI color support.
  */
 
-import { Transport } from "./transport.mjs";
+import { Transport } from "./Transport.mjs";
 import chalk from "chalk";
 
 export class ConsoleTransport extends Transport {

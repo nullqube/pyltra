@@ -4,20 +4,46 @@
  * Base contract for logger transports. Concrete transport classes should
  */
 
-import { RuntimeAware } from "../../runtime/RuntimeAware.mjs";
-
-export class Transport extends RuntimeAware {
+export class Transport {
     constructor({
-        runtime,
         enabled = true,
         level = "debug",
         silent = false,
     } = {}) {
-        super({ runtime });
+        this.setConfig({
+            enabled,
+            level,
+            silent,
+        });
+    }
 
-        this.enabled = enabled;
-        this.level = level;
-        this.silent = silent;
+    /**
+     * Update transport configuration.
+     *
+     * @param {Object} [config]
+     * @param {boolean} [config.enabled] - Whether this transport is active.
+     * @param {string} [config.level] - Minimum log level to emit.
+     * @param {boolean} [config.silent] - Silence this transport.
+     * @returns {Transport}
+     */
+    setConfig({
+        enabled,
+        level,
+        silent,
+    } = {}) {
+        if (enabled !== undefined) {
+            this.enabled = enabled;
+        }
+
+        if (level !== undefined) {
+            this.level = level;
+        }
+
+        if (silent !== undefined) {
+            this.silent = silent;
+        }
+
+        return this;
     }
 
     // -------------------------------------------------------------------------

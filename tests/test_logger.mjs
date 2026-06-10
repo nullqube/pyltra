@@ -21,18 +21,19 @@ const runtime = Runtime.fromCLI({
 });
 
 const logger = new Logger({
-    runtime,
+    debug: runtime.debug,
+    verbose: runtime.verbose,
+    silent: runtime.silent,
+    environment: runtime.environment,
     prefix: "pyltra",
     transports: [
         new ConsoleTransport({
-            runtime,
             level: "debug",
             timestamp: true,
             useColors: true,
         }),
 
         new FileTransport({
-            runtime,
             file: "logs/demo.log.jsonl",
             pretty: false,
             maxFileSize: 1024 * 1024,

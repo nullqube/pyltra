@@ -18,20 +18,19 @@ import path from "node:path";
 export class FileTransport extends Transport {
     /**
      * @param {Object} [options]
-     * @param {import("../../runtime/Runtime.mjs").Runtime} [options.runtime]
      * @param {string} [options.file] - Path to the log file. Default: "logs/pyltra.log.jsonl".
      * @param {boolean} [options.pretty] - Pretty-print JSON (more readable, larger files).
      * @param {number} [options.maxFileSize] - Rotate when file exceeds this size in bytes. Default: 5MB.
      * @param {number} [options.maxFiles] - Keep this many rotated log files. Default: 5.
      */
     constructor({
-        runtime,
         file = "logs/pyltra.log.jsonl",
         pretty = false,
         maxFileSize = 1024 * 1024 * 5, // 5MB
         maxFiles = 5,
+        ...transportOptions
     } = {}) {
-        super({ runtime });
+        super(transportOptions);
 
         this.file = file;
         this.pretty = pretty;
@@ -42,10 +41,10 @@ export class FileTransport extends Transport {
     }
 
     /**
-     * Emit (write) a log event to the file.
+     * Write a log event to the file.
      * @param {Object} event
      */
-    emit(event) {
+    write(event) {
         this.rotateIfNeeded();
 
         fs.appendFileSync(
