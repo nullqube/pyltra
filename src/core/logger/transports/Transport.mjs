@@ -10,9 +10,40 @@ export class Transport {
         level = "debug",
         silent = false,
     } = {}) {
-        this.enabled = enabled;
-        this.level = level;
-        this.silent = silent;
+        this.setConfig({
+            enabled,
+            level,
+            silent,
+        });
+    }
+
+    /**
+     * Update transport configuration.
+     *
+     * @param {Object} [config]
+     * @param {boolean} [config.enabled] - Whether this transport is active.
+     * @param {string} [config.level] - Minimum log level to emit.
+     * @param {boolean} [config.silent] - Silence this transport.
+     * @returns {Transport}
+     */
+    setConfig({
+        enabled,
+        level,
+        silent,
+    } = {}) {
+        if (enabled !== undefined) {
+            this.enabled = enabled;
+        }
+
+        if (level !== undefined) {
+            this.level = level;
+        }
+
+        if (silent !== undefined) {
+            this.silent = silent;
+        }
+
+        return this;
     }
 
     // -------------------------------------------------------------------------
@@ -91,3 +122,4 @@ export class Transport {
         );
     }
 }
+
