@@ -39,6 +39,10 @@ export class RuntimeAware {
     get logger() {
         return this.runtime.logger;
     }
+
+    get diagnostics() {
+        return this.runtime.getDiagnostics();
+    }
     // -------------------------------------------------------------------------
     // Environment
     // -------------------------------------------------------------------------
