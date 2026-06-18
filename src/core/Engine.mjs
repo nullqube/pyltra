@@ -30,6 +30,7 @@ import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
 import { DataLoader } from '../data/DataLoader.mjs';
 
+import prompts from 'prompts';
 export class PyltraEngine extends RuntimeAware {
 
     /**

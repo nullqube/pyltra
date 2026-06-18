@@ -63,6 +63,7 @@ export class CLIAdapter {
     registerInit(handler) {
         this.program
             .command("init [name]")
+            .option('-t, --template <template>', 'Template to use', 'basic')
             .description("Initialize a new Pyltra project")
             .action(async (name, options, command) => {
                 await handler(this.normalize(command, {
