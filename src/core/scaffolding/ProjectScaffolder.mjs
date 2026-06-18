@@ -92,7 +92,7 @@ export class ProjectScaffolder {
      * Creates the default config.yaml.
      * @param {string} projectPath
      */
-    #createDefaultConfig(projectPath) {
+    static #createDefaultConfig(projectPath) {
         const configPath = path.join(projectPath, 'config.yaml');
         // Don't overwrite if template already provided one
         if (fs.existsSync(configPath)) {
@@ -123,7 +123,7 @@ export class ProjectScaffolder {
      * Creates the default folder structure.
      * @param {string} projectPath
      */
-    #createFoldersStructure(projectPath) {
+    static #createFoldersStructure(projectPath) {
         const defaultDirs = [
             'src',
             'src/assets',
@@ -151,7 +151,7 @@ export class ProjectScaffolder {
      * @param {string} projectPath
      * @param {string} templatePath - pre-validated path
      */
-    #initWithTemplate(template, projectPath, templatePath) {
+    static #initWithTemplate(template, projectPath, templatePath) {
         fs.cpSync(templatePath, projectPath, { recursive: true });
         console.log(`Initialized with "${template}" template.`);
     }
