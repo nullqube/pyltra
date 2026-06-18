@@ -7,11 +7,8 @@
 
 export class TransportManager {
     constructor({
-        runtime,
         transports = [],
     } = {}) {
-        this.runtime = runtime;
-
         this.transports = [];
 
         for (const transport of transports) {

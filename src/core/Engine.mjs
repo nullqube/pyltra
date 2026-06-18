@@ -58,6 +58,27 @@ export class PyltraEngine extends RuntimeAware {
         this._loaded = false;
     }
 
+    async run(input) {
+        switch(input.command) {
+            case 'init':
+                await this.init(input.options, input.responses);
+                break;
+            case 'build':
+                await this.build();
+                break;
+            case 'validate':
+                await this.validate();
+                break;
+            case 'serve':
+                await this.serve();
+                break;
+            case 'clean':
+                await this.clean();
+                break;
+            default:
+                throw new Error(`Unknown command: ${input.command}`);
+        }
+    }
     /**
      * Bootstraps engine-level services.
      */
@@ -105,7 +126,57 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Initializes a new project (used by CLI init command)
      */
-    async init(initOptions, responses) {
+    async init(initOptions) {
+        // TODO: Refactor this to not require interactive prompts directly in the CLI adapter,
+        //  as it makes testing difficult. Consider moving this logic into a separate service
+        //  that can be mocked during tests.
+        // TODO: Add support for passing these options via CLI flags for non-interactive use cases (e.g. CI)
+        // TODO: Add validation for project name (e.g. no spaces, special characters, etc.)
+        // TODO: Add option to specify a preset or template for the project (e.g. blog, docs, portfolio, etc.)
+        // TODO: Add option to specify a custom directory for the project instead of always using the current working directory
+        // TODO: Add option to skip prompts and use defaults for all options (e.g. `--defaults` flag)
+        // TODO: Add option to specify a config file or template to use for the project instead of always using a default config
+        // TODO: Add option to initialize a git repository and make the first commit as part of the init process
+        // TODO: Add option to install dependencies after initialization (e.g. `--install` flag)
+        // TODO: checking the given parameters and only prompting for missing ones
+        //        (e.g. if project name is provided via CLI flag, skip the prompt for it)
+        //        This will require refactoring the prompts to be more dynamic based on which options are already provided
+        // TODO: Add support for non-interactive initialization (e.g. `pyltra init --name my-project --description "My project" --create-readme --create-gitignore`) for use in CI or scripts
+        
+        const responses = await prompts(
+            [
+                {
+                    type: 'text',
+                    name: 'projectName',
+                    message: 'Enter the project name:',
+                    validate: value => value.trim().length > 0 ? true : 'Project name is required'
+                },
+                {
+                    type: 'text',
+                    name: 'projectDescription',
+                    message: 'Enter the project description:'
+                },
+                {
+                    type: 'confirm',
+                    name: 'createReadme',
+                    message: 'Create README.md?',
+                    initial: true
+                },
+                {
+                    type: 'confirm',
+                    name: 'createGitignore',
+                    message: 'Create .gitignore?',
+                    initial: true
+                }
+            ],
+            {
+                // Treat Ctrl+C as cancellation rather than a hard crash
+                onCancel: () => {
+                    console.log('\nProject initialization cancelled.');
+                    process.exit(0);
+                }
+            }
+        );
         await ProjectScaffolder.create(initOptions, responses);
     }
 

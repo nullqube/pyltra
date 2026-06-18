@@ -60,16 +60,6 @@ export class ConfigLoader extends RuntimeAware {
         this._rawConfig = null;
     }
 
-    /** @param {boolean} value */
-    setIsProd(value) {
-        this._isProd = !!value;
-    }
-
-    /** @returns {boolean} */
-    getIsProd() {
-        return this._isProd;
-    }
-
     /**
      * Loads, validates, merges, and normalizes project configuration.
      * Cached after the first successful call.
