@@ -6,12 +6,16 @@
  * @license MIT
  */
 
+import {BuildArtifact} from './BuildArtifact.mjs';
 export class Diagnostics {
     constructor() {
         this.artifacts = [];
     }
 
-    add(artifact) {
+    recordArtifact(artifact) {
+        if (!(artifact instanceof BuildArtifact))
+            throw new Error('artifact must be an instance of BuildArtifact');
+
         this.artifacts.push(artifact);
     }
 
