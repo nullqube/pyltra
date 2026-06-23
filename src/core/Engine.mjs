@@ -30,7 +30,6 @@ import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
 import { DataLoader } from '../data/DataLoader.mjs';
 
-import prompts from 'prompts';
 export class PyltraEngine extends RuntimeAware {
 
     /**
@@ -60,21 +59,22 @@ export class PyltraEngine extends RuntimeAware {
     }
 
     async run(input) {
+        console.log(input);
         switch(input.command) {
             case 'init':
                 await this.init(input.options, input.responses);
                 break;
             case 'build':
-                await this.build();
+                await this.build(input.options);
                 break;
             case 'validate':
-                await this.validate();
+                await this.validate(input.options);
                 break;
             case 'serve':
-                await this.serve();
+                await this.serve(input.options);
                 break;
             case 'clean':
-                await this.clean();
+                await this.clean(input.options);
                 break;
             default:
                 throw new Error(`Unknown command: ${input.command}`);
@@ -144,41 +144,7 @@ export class PyltraEngine extends RuntimeAware {
         //        This will require refactoring the prompts to be more dynamic based on which options are already provided
         // TODO: Add support for non-interactive initialization (e.g. `pyltra init --name my-project --description "My project" --create-readme --create-gitignore`) for use in CI or scripts
         
-        const responses = await prompts(
-            [
-                {
-                    type: 'text',
-                    name: 'projectName',
-                    message: 'Enter the project name:',
-                    validate: value => value.trim().length > 0 ? true : 'Project name is required'
-                },
-                {
-                    type: 'text',
-                    name: 'projectDescription',
-                    message: 'Enter the project description:'
-                },
-                {
-                    type: 'confirm',
-                    name: 'createReadme',
-                    message: 'Create README.md?',
-                    initial: true
-                },
-                {
-                    type: 'confirm',
-                    name: 'createGitignore',
-                    message: 'Create .gitignore?',
-                    initial: true
-                }
-            ],
-            {
-                // Treat Ctrl+C as cancellation rather than a hard crash
-                onCancel: () => {
-                    console.log('\nProject initialization cancelled.');
-                    process.exit(0);
-                }
-            }
-        );
-        await ProjectScaffolder.create(initOptions, responses);
+        await ProjectScaffolder.create(initOptions);
     }
 
     /**
