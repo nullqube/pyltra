@@ -10,8 +10,7 @@ export class BuildArtifact {
     constructor({
         type,
         path,
-        originalSize,
-        finalSize,
+        size,
         createdBy
     }) {
 
@@ -21,20 +20,16 @@ export class BuildArtifact {
         if (!path)
             throw new Error('path is required');
 
-        if (originalSize == null)
-            throw new Error('originalSize is required');
-
-        if (finalSize == null)
-            throw new Error('finalSize is required');
+        if (size == null)
+            throw new Error('size is required');
 
         this.type = type;
         this.path = path;
-        this.originalSize = originalSize;
-        this.finalSize = finalSize;
+        this.size = size;
         this.createdBy = createdBy;
     }
 
-    get compressionRatio() {
-        return this.finalSize / this.originalSize;
-    }
+    // get compressionRatio() {
+    //     return this.finalSize / this.originalSize;
+    // }
 }
