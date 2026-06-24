@@ -30,7 +30,7 @@ export class ProjectScaffolder {
             template = 'empty';
         }
 
-        const { projectName, projectDescription, createReadme, createGitignore } = responses;
+        const projectName = options.name ;
         console.log('\nInitializing project...');
         console.log(`Creating project: ${projectName}`);
 
@@ -62,11 +62,12 @@ export class ProjectScaffolder {
         this.#createFoldersStructure(projectPath);
         this.#createDefaultConfig(projectPath);
 
-        if (createReadme) {
+        if (true) { // removed 'createReadme' option for now, always create README.md
             const readmeContent = [
                 `# ${projectName}`,
                 '',
-                projectDescription || '',
+                'YOUR PROJECT DESCRIPTION', // TODO: Allow user to provide description via CLI or prompts
+                                            // removed 'projectDescription' option for now, always use placeholder text.
                 '',
                 '## Getting Started',
                 '',
@@ -78,7 +79,7 @@ export class ProjectScaffolder {
             console.log('Created README.md');
         }
 
-        if (createGitignore) {
+        if (true) { // removed 'createGitignore' option for now, always create .gitignore
             const gitignoreContent = `node_modules/\ndist/\n.DS_Store\n.env\n`;
             fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignoreContent, 'utf8');
             console.log('Created .gitignore');
