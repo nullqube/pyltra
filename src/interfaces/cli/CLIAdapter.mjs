@@ -43,13 +43,21 @@ export class CLIAdapter {
             .option("--page <page>", "Build a specific page")
             .option("--collection <collection>", "Build a specific collection")
             .option("--item <slug>", "Build a specific collection item")
-            
             .option("--watch", "Watch files", false)
+            .option("--report-size","Show the report size of the output.", false)
+            .option("--report-depth <depth>","The report size depth.", 1)
             .action(async (options, command) => {
+                const { reportSize, reportDepth, ...restOptions } = options;
                 await handler(this.normalize(command, {
                     command: "build",
                     args: {},
-                    options,
+                    options: { 
+                        ...restOptions,
+                        report: {
+                            size: reportSize,
+                            depth: Number.parseInt(reportDepth, 10) || undefined
+                        }
+                    }
                 }));
             });
     }
