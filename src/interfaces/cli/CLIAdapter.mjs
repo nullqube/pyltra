@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import prompts from 'prompts';
 
 // Only parse and normalize the cli input here, the actual command handling logic should be implemented in the engine
 // 1. Parse the command and options using commander
@@ -23,7 +24,7 @@ export class CLIAdapter {
             .option("--ci", "Run in CI mode", false);
 
         this.registerBuild(handler);
-        this.registerDev(handler);
+        this.registerServe(handler);
         this.registerInit(handler);
         this.registerAdd(handler);
 
@@ -34,28 +35,37 @@ export class CLIAdapter {
         this.program
             .command("build")
             .description("Build the project")
+            // Build options
+            .option("--drafts", "Include draft content", false)
+            .option("--minify", "Minify output", true)
+            .option("--clean", "Clean output directory before build", true)
+            .option("--language <lang>", "Build only one language")
+            .option("--page <page>", "Build a specific page")
+            .option("--collection <collection>", "Build a specific collection")
+            .option("--item <slug>", "Build a specific collection item")
+            
             .option("--watch", "Watch files", false)
             .action(async (options, command) => {
                 await handler(this.normalize(command, {
                     command: "build",
-                    args: [],
-                    flags: options,
+                    args: {},
+                    options,
                 }));
             });
     }
 
-    registerDev(handler) {
+    registerServe(handler) {
         this.program
-            .command("dev")
+            .command("serve")
             .description("Start development server")
             .option("--host <host>", "Dev server host", "localhost")
             .option("--port <port>", "Dev server port", parseInteger, 3000)
             .option("--watch", "Watch files", true)
             .action(async (options, command) => {
                 await handler(this.normalize(command, {
-                    command: "dev",
-                    args: [],
-                    flags: options,
+                    command: "serve",
+                    args: { host: options.host, port: options.port },
+                    options: { watch: options.watch }
                 }));
             });
     }
@@ -66,10 +76,57 @@ export class CLIAdapter {
             .option('-t, --template <template>', 'Template to use', 'basic')
             .description("Initialize a new Pyltra project")
             .action(async (name, options, command) => {
+                const _name = name ?? options.name ?? null;
+                const _template = options.template ?? null;
+                const questions = [];
+                if (!_name) {
+                    questions.push({
+                        type: 'text',
+                        name: 'name',
+                        message: 'Enter the project name:',
+                        validate: v => v.trim().length ? true : 'Project name is required'
+                    });
+                }
+                if(!_template) {
+                    questions.push({
+                        type: "select",
+                        name: "template",
+                        message: "Template:",
+                        choices: [
+                            {
+                                title: "empty",
+                                value: "empty"
+                            },
+                            {
+                                title: "basic",
+                                value: "basic"
+                            },
+                            // {
+                            //     title: "docs",
+                            //     value: "docs"
+                            // },
+                            // {
+                            //     title: "portfolio",
+                            //     value: "portfolio"
+                            // }
+                        ],
+                        initial: 0
+                    }); 
+                }
+                const responses = await prompts(questions, {
+                    onCancel: () => {
+                        console.log('\nProject initialization cancelled.');
+                        process.exit(0);
+                    }
+                });
+                
                 await handler(this.normalize(command, {
                     command: "init",
-                    args: name ? [name] : [],
-                    flags: options,
+                    args: {
+                        name: _name ?? responses.name,
+                        template: _template ?? responses.template
+                    },
+                    options,
                 }));
             });
     }
@@ -81,22 +138,105 @@ export class CLIAdapter {
             .action(async (type, name, options, command) => {
                 await handler(this.normalize(command, {
                     command: "add",
-                    args: [type, name],
-                    flags: options,
+                    args: { type, name },
+                    options,
                 }));
             });
     }
 
+    /**
+     * Normalize Commander.js input into Pyltra's internal command format.
+     *
+     * This method converts raw CLI input into a transport-agnostic structure
+     * used by the Engine. The resulting object can later come from other
+     * adapters such as REST, TUI, Web UI, or AI agents, not only the CLI.
+     *
+     * Result shape:
+     *
+     * {
+     *     command,
+     *     args,
+     *     options,
+     *     flags,
+     *     raw
+     * }
+     *
+     * Definitions:
+     *
+     * - command
+     *   The operation to execute.
+     *   Examples: "init", "build", "serve", "add".
+     *
+     * - args
+     *   Primary inputs (subjects) of the command.
+     *   They answer "What is this command acting on?".
+     *   Without them, the command either cannot work or falls back to a default.
+     *
+     *   Examples:
+     *
+     *   pyltra init my-site
+     *   args: { name: "my-site" }
+     *
+     *   pyltra add page about
+     *   args: { type: "page", name: "about" }
+     *
+     * - options
+     *   Command-specific behavior and features.
+     *   They answer "How should this command perform its task?".
+     *   They are part of the command's domain and meaning.
+     *
+     *   Examples:
+     *
+     *   pyltra init my-site --template blog
+     *   options: { template: "blog" }
+     *
+     *   pyltra build --drafts --minify
+     *   options: { drafts: true, minify: true }
+     *
+     * - flags
+     *   Runtime and execution behavior.
+     *   They are not part of the command itself but affect how it runs.
+     *   These flags are usually shared between commands.
+     *
+     *   Examples:
+     *
+     *   pyltra build --watch --verbose
+     *   flags: { watch: true, verbose: true }
+     *
+     * - raw
+     *   Original command-line arguments for debugging and diagnostics.
+     *
+     * Example:
+     *
+     * pyltra init my-site --template blog --verbose
+     *
+     * becomes:
+     *
+     * {
+     *     command: "init",
+     *     args: { name: "my-site" },
+     *     options: { template: "blog" },
+     *     flags: { verbose: true, ... },
+     *     raw: process.argv.slice(2)
+     * }
+     *
+     * @param {Command} commanderCommand Commander.js command instance.
+     * @param {Object} input Normalized command parts supplied by the adapter.
+     * @returns {Object} Internal command input consumed by the Engine.
+     */
     normalize(commanderCommand, input) {
-        return {
+        const globalOpts = this.program.opts();
+        const res = {
             command: input.command,
-            args: input.args,
+            args: { ...input.args },        // required domain inputs
+            options: input.options ?? {},   // command features (optional)
             flags: {
-                ...commanderCommand.optsWithGlobals(),
-                ...input.flags,
+                ...globalOpts,
             },
             raw: process.argv.slice(2),
         };
+        console.log(res)
+        return res;
     }
 }
 
