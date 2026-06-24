@@ -64,6 +64,12 @@ await adapter.run(async (commandInput) => {
         cwd: process.cwd(),
     });
 
-    await engine.run(commandInput);
+    try {
+        await engine.run(commandInput);
+    } catch (err) {
+        logger.error(err.message);
+        if (commandInput.flags.debug) console.error(err);
+        process.exit(1);
+    }
 });
 /* -------------------- */
