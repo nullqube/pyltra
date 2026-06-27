@@ -9,7 +9,8 @@
 export class BuildArtifact {
     constructor({
         type,
-        path,
+        lang,
+        name,
         size,
         createdBy
     }) {
@@ -17,14 +18,14 @@ export class BuildArtifact {
         if (!type)
             throw new Error('type is required');
 
-        if (!path)
-            throw new Error('path is required');
+        if (!name)
+            throw new Error('name is required');
 
         if (size == null)
             throw new Error('size is required');
 
         this.type = type;
-        this.path = path;
+        this.name = name;
         this.size = size;
         this.createdBy = createdBy;
     }
