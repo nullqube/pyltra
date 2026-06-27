@@ -30,7 +30,6 @@ import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.mjs';
 import { ConfigLoader } from '../domain/config/ConfigLoader.mjs';
 import { DataLoader } from '../data/DataLoader.mjs';
 
-import prompts from 'prompts';
 export class PyltraEngine extends RuntimeAware {
 
     /**
@@ -62,19 +61,19 @@ export class PyltraEngine extends RuntimeAware {
     async run(input) {
         switch(input.command) {
             case 'init':
-                await this.init(input.options, input.responses);
+                await this.init(input.args);
                 break;
             case 'build':
-                await this.build();
+                await this.build(input.args);
                 break;
             case 'validate':
-                await this.validate();
+                await this.validate(input.args);
                 break;
             case 'serve':
-                await this.serve();
+                await this.serve(input.args);
                 break;
             case 'clean':
-                await this.clean();
+                await this.clean(input.args);
                 break;
             default:
                 throw new Error(`Unknown command: ${input.command}`);
@@ -127,64 +126,21 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Initializes a new project (used by CLI init command)
      */
-    async init(initOptions) {
-        // TODO: Refactor this to not require interactive prompts directly in the CLI adapter,
-        //  as it makes testing difficult. Consider moving this logic into a separate service
-        //  that can be mocked during tests.
-        // TODO: Add support for passing these options via CLI flags for non-interactive use cases (e.g. CI)
+    async init(args) {
         // TODO: Add validation for project name (e.g. no spaces, special characters, etc.)
-        // TODO: Add option to specify a preset or template for the project (e.g. blog, docs, portfolio, etc.)
         // TODO: Add option to specify a custom directory for the project instead of always using the current working directory
         // TODO: Add option to skip prompts and use defaults for all options (e.g. `--defaults` flag)
         // TODO: Add option to specify a config file or template to use for the project instead of always using a default config
         // TODO: Add option to initialize a git repository and make the first commit as part of the init process
         // TODO: Add option to install dependencies after initialization (e.g. `--install` flag)
-        // TODO: checking the given parameters and only prompting for missing ones
-        //        (e.g. if project name is provided via CLI flag, skip the prompt for it)
-        //        This will require refactoring the prompts to be more dynamic based on which options are already provided
-        // TODO: Add support for non-interactive initialization (e.g. `pyltra init --name my-project --description "My project" --create-readme --create-gitignore`) for use in CI or scripts
         
-        const responses = await prompts(
-            [
-                {
-                    type: 'text',
-                    name: 'projectName',
-                    message: 'Enter the project name:',
-                    validate: value => value.trim().length > 0 ? true : 'Project name is required'
-                },
-                {
-                    type: 'text',
-                    name: 'projectDescription',
-                    message: 'Enter the project description:'
-                },
-                {
-                    type: 'confirm',
-                    name: 'createReadme',
-                    message: 'Create README.md?',
-                    initial: true
-                },
-                {
-                    type: 'confirm',
-                    name: 'createGitignore',
-                    message: 'Create .gitignore?',
-                    initial: true
-                }
-            ],
-            {
-                // Treat Ctrl+C as cancellation rather than a hard crash
-                onCancel: () => {
-                    console.log('\nProject initialization cancelled.');
-                    process.exit(0);
-                }
-            }
-        );
-        await ProjectScaffolder.create(initOptions, responses);
+        await ProjectScaffolder.create(args);
     }
 
     /**
      * Build the project
      */
-    async build() {
+    async build(args) {
         await this.load();
         await this.buildManager.build();
     }
@@ -192,7 +148,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Validates project configuration and structure
      */
-    async validate() {
+    async validate(args) {
         await this.load();
         await this.buildManager.validate();
     }
@@ -200,7 +156,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Starts dev server + watchers
      */
-    async serve() {
+    async serve(args) {
         await this.load();
         await this.devServer.start();
     }
@@ -212,7 +168,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Cleans output directory
      */
-    async clean() {
+    async clean(args) {
         await this.load();
         await this.buildManager.clean();
     }
