@@ -97,6 +97,13 @@ export class Renderer extends RuntimeAware {
             let htmlContent = this._renderTemplate(template.fileName, context);
             htmlContent = this.#maybeMinify(htmlContent);
 
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'page',
+                lang,
+                name: template.name,
+                size: Buffer.byteLength(htmlContent, 'utf-8'),
+                createdBy: 'Renderer'
+            }));
             await this.outputWriter.writePage(lang, template.name, htmlContent);
         }
     }
@@ -141,6 +148,14 @@ export class Renderer extends RuntimeAware {
                 this.info(`Building ${lang}/${collectionName}/${slug}`);
                 let htmlContent = this._renderTemplate(itemTemplate, context);
                 htmlContent = this.#maybeMinify(htmlContent);
+
+                this.diagnostics.recordArtifact(new BuildArtifact({
+                    type: 'collection-item',
+                    lang,
+                    name: `${collectionName}/${slug}`,
+                    size: Buffer.byteLength(htmlContent, 'utf-8'),
+                    createdBy: 'Renderer'
+                }));
                 await this.outputWriter.writeCollectionItem(lang, collectionName, slug, htmlContent);
             }
         }

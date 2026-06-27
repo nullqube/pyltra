@@ -17,6 +17,7 @@
  * - Runtime represents execution state, not project state.
  */
 
+import { Diagnostics } from "../diagnostics/Diagnostics.mjs";
 export class Runtime {
     /**
      * @param {Object} options
@@ -58,6 +59,8 @@ export class Runtime {
         this.ci = ci ?? Boolean(process.env.CI); // CI mode implies non-interactive, but not vice versa
         this.version = version; // Application version, if available
         this.startTime = startTime; // Timestamp when the process started, used for uptime calculations
+
+        this.diagnostics = new Diagnostics();
     }
 
     setLogger(logger) {
@@ -68,6 +71,10 @@ export class Runtime {
     setReporter(reporter) {
         this.reporter = reporter;
         return this;
+    }
+
+    getDiagnostics() {
+        return this.diagnostics;
     }
 
     // ---------------------------------------------------------------------------

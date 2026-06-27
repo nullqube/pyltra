@@ -33,11 +33,14 @@ export class BuildManager extends RuntimeAware {
     /**
      * Full build lifecycle
      */
-    async build() {
+    async build(bReportSize) {
         await this.validate();
         await this.clean();
         await this.renderer.renderAll();
         await this.assets.processAll();
+        if(bReportSize) {
+            this.printSummary();
+        }
     }
 
     /**
@@ -58,5 +61,15 @@ export class BuildManager extends RuntimeAware {
         }
 
         fs.mkdirSync(distPath, { recursive: true });
+    }
+
+    printSummary() {
+        const summary = this.diagnostics.buildSizeReport();
+        console.log(`Total artifacts: ${summary.total}`);
+        console.log(`Total size: ${summary.totalSize} bytes`);
+        const report = this.buildSizeReport();
+        for (const [type, data] of Object.entries(report.byType)) {
+            console.log(`Type: ${type}, Count: ${data.count}, Total Size: ${data.totalSize} bytes`);
+        }
     }
 }
