@@ -59,4 +59,8 @@ export class Humanize {
 
         return `${percentage.toFixed(decimals)}%`;
     }
+
+    static number(value) {
+        return new Intl.NumberFormat("en-US").format(value);
+    }
 }
