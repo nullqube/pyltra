@@ -23,7 +23,7 @@ import sharp from 'sharp';
 import { optimize } from 'svgo';
 
 import { RuntimeAware } from '../../core/runtime/RuntimeAware.mjs';
-
+import { BuildArtifact } from '../../core/diagnostics/BuildArtifact.mjs';
 export class AssetPipeline extends RuntimeAware {
 
     constructor(runtime, project) {
@@ -76,6 +76,13 @@ export class AssetPipeline extends RuntimeAware {
                     }
             });
 
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'style',
+                lang: null,
+                name: file,
+                size: Buffer.byteLength(processed.css, 'utf-8'),
+                createdBy: 'AssetPipeline'
+            }));
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
             fs.writeFileSync(outputPath, processed.css);
             if (processed.map) {
@@ -90,14 +97,38 @@ export class AssetPipeline extends RuntimeAware {
 
         if (!fs.existsSync(srcAssets)) return;
 
-        fs.mkdirSync(distAssets, { recursive: true });
-        fs.cpSync(srcAssets, distAssets, {
-            recursive: true,
-            filter: source => {
-                const relative = path.relative(srcAssets, source);
-                return relative === '' || !relative.split(path.sep).includes('scss');
-            }
+        const files = await fastGlob('**/*', {
+            cwd: srcAssets,
+            onlyFiles: true,
+            dot: true,
+            ignore: ['**/scss/**']
         });
+
+        await Promise.all(files.map(async file => {
+            const sourcePath = path.join(srcAssets, file);
+            const outputPath = path.join(distAssets, file);
+
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: this.#getCopiedAssetType(file),
+                lang: null,
+                name: file,
+                size: fs.statSync(sourcePath).size,
+                createdBy: 'AssetPipeline'
+            }));
+
+            fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+            fs.copyFileSync(sourcePath, outputPath);
+        }));
+    }
+
+    #getCopiedAssetType(file) {
+        const extension = path.extname(file).toLowerCase();
+
+        if (extension === '.css') return 'style';
+        if (extension === '.js') return 'script';
+        if (['.avif', '.gif', '.ico', '.jpeg', '.jpg', '.png', '.svg', '.webp'].includes(extension)) return 'image';
+
+        return 'asset';
     }
 
     async minifyCss() {
@@ -123,6 +154,13 @@ export class AssetPipeline extends RuntimeAware {
                 }
             );
 
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'style',
+                lang: null,
+                name: file,
+                size: Buffer.byteLength(result.css, 'utf-8'),
+                createdBy: 'AssetPipeline'
+            }));
             fs.writeFileSync(filePath, result.css);
         }));
     }
@@ -187,6 +225,13 @@ export class AssetPipeline extends RuntimeAware {
                 }
             );
 
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'script',
+                lang: null,
+                name: file,
+                size: Buffer.byteLength(result.code, 'utf-8'),
+                createdBy: 'AssetPipeline'
+            }));
             fs.writeFileSync(filePath, result.code.trim());
         }));
     }
@@ -248,7 +293,13 @@ export class AssetPipeline extends RuntimeAware {
             if (result.error) {
                 throw new Error(`Failed to optimize SVG "${file}": ${result.error}`);
             }
-
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'image',
+                lang: null,
+                name: file,
+                size: Buffer.byteLength(result.data, 'utf-8'),
+                createdBy: 'AssetPipeline'
+            }));
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
             fs.writeFileSync(outputPath, result.data);
         }));

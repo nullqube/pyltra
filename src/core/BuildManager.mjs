@@ -17,6 +17,7 @@ import ConfigValidator from '../domain/config/ConfigValidator.mjs';
 import { Renderer } from '../renderer/Renderer.mjs';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
 import { RuntimeAware } from './runtime/RuntimeAware.mjs';
+import { formatFileSize } from '../utils/formatter/formatFileSize.mjs';
 export class BuildManager extends RuntimeAware {
     constructor( runtime, project ) {
         super({ runtime });
@@ -33,12 +34,12 @@ export class BuildManager extends RuntimeAware {
     /**
      * Full build lifecycle
      */
-    async build(bReportSize) {
+    async build(options = {}) {
         await this.validate();
         await this.clean();
         await this.renderer.renderAll();
         await this.assets.processAll();
-        if(bReportSize) {
+        if(options.report.size) {
             this.printSummary();
         }
     }
@@ -64,12 +65,13 @@ export class BuildManager extends RuntimeAware {
     }
 
     printSummary() {
-        const summary = this.diagnostics.buildSizeReport();
+        const summary = this.diagnostics.getSummary();
         console.log(`Total artifacts: ${summary.total}`);
-        console.log(`Total size: ${summary.totalSize} bytes`);
-        const report = this.buildSizeReport();
+        console.log(`Total size: ${formatFileSize(summary.totalSize)}`);
+        console.log('-----------------------------------');
+        const report = this.diagnostics.buildSizeReport();
         for (const [type, data] of Object.entries(report.byType)) {
-            console.log(`Type: ${type}, Count: ${data.count}, Total Size: ${data.totalSize} bytes`);
+            console.log(`${type}:\n  Count: ${data.count}\n  Total Size: ${formatFileSize(data.totalSize)}`);
         }
     }
 }

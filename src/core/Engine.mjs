@@ -61,19 +61,19 @@ export class PyltraEngine extends RuntimeAware {
     async run(input) {
         switch(input.command) {
             case 'init':
-                await this.init(input.args);
+                await this.init(input.args, input.options);
                 break;
             case 'build':
-                await this.build(input.args);
+                await this.build(input.args, input.options);
                 break;
             case 'validate':
-                await this.validate(input.args);
+                await this.validate(input.args, input.options);
                 break;
             case 'serve':
-                await this.serve(input.args);
+                await this.serve(input.args, input.options);
                 break;
             case 'clean':
-                await this.clean(input.args);
+                await this.clean(input.args, input.options);
                 break;
             default:
                 throw new Error(`Unknown command: ${input.command}`);
@@ -126,7 +126,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Initializes a new project (used by CLI init command)
      */
-    async init(args) {
+    async init(args, options) {
         // TODO: Add validation for project name (e.g. no spaces, special characters, etc.)
         // TODO: Add option to specify a custom directory for the project instead of always using the current working directory
         // TODO: Add option to skip prompts and use defaults for all options (e.g. `--defaults` flag)
@@ -140,15 +140,15 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Build the project
      */
-    async build(args) {
+    async build(args, options) {
         await this.load();
-        await this.buildManager.build();
+        await this.buildManager.build(options);
     }
 
     /**
      * Validates project configuration and structure
      */
-    async validate(args) {
+    async validate(args, options) {
         await this.load();
         await this.buildManager.validate();
     }
@@ -156,7 +156,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Starts dev server + watchers
      */
-    async serve(args) {
+    async serve(args, options) {
         await this.load();
         await this.devServer.start();
     }
@@ -168,7 +168,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Cleans output directory
      */
-    async clean(args) {
+    async clean(args, options) {
         await this.load();
         await this.buildManager.clean();
     }

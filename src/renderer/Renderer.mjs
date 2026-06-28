@@ -26,6 +26,7 @@ import { FilesystemAdapter } from '../data/adapters/FilesystemAdapter.mjs';
 import { createNunjucksEnvironment } from './NunjucksEnvironment.mjs';
 import { TemplateRepository } from "./TemplateRepository.mjs";
 import { OutputWriter } from './OutputWriter.mjs';
+import { BuildArtifact } from '../core/diagnostics/BuildArtifact.mjs';
 
 const HTML_MINIFY_OPTIONS = {
     collapseWhitespace: true,
@@ -170,6 +171,13 @@ export class Renderer extends RuntimeAware {
             let content = await this.fsAdapter.readText(path.join(this.project.getSourcePath(), fileName));
             this.info(`Copied bundle: ${fileName}`);
             content = this.#maybeMinify(content);
+            this.diagnostics.recordArtifact(new BuildArtifact({
+                type: 'bundle',
+                lang: null,
+                name: fileName,
+                size: Buffer.byteLength(content, 'utf-8'),
+                createdBy: 'Renderer'
+            }));
             await this.outputWriter.writeBundle(fileName, content);
         }
     }
