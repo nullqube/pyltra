@@ -21,7 +21,7 @@ export class ProjectScaffolder {
         // 5. Create output directory (empty)
         // 6. Optionally create README.md and .gitignore
 
-        const { projectName, projectDescription, createReadme, createGitignore } = responses;
+        // const { projectName, projectDescription, createReadme, createGitignore } = responses;
         const __filename   = fileURLToPath(import.meta.url);
         const __dirname    = path.dirname(__filename);
         const TEMPLATE_DIR = path.resolve(__dirname, '../../../templates');
