@@ -17,7 +17,7 @@ import ConfigValidator from '../domain/config/ConfigValidator.mjs';
 import { Renderer } from '../renderer/Renderer.mjs';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.mjs';
 import { RuntimeAware } from './runtime/RuntimeAware.mjs';
-import { formatFileSize } from '../utils/formatter/formatFileSize.mjs';
+import { Humanize } from '../utils/Humanize.mjs';
 export class BuildManager extends RuntimeAware {
     constructor( runtime, project ) {
         super({ runtime });
@@ -67,11 +67,11 @@ export class BuildManager extends RuntimeAware {
     printSummary() {
         const summary = this.diagnostics.getSummary();
         console.log(`Total artifacts: ${summary.total}`);
-        console.log(`Total size: ${formatFileSize(summary.totalSize)}`);
+        console.log(`Total size: ${Humanize.fileSize(summary.totalSize)}`);
         console.log('-----------------------------------');
         const report = this.diagnostics.buildSizeReport();
         for (const [type, data] of Object.entries(report.byType)) {
-            console.log(`${type}:\n  Count: ${data.count}\n  Total Size: ${formatFileSize(data.totalSize)}`);
+            console.log(`${type}:\n  Count: ${data.count}\n  Total Size: ${Humanize.fileSize(data.totalSize)}`);
         }
     }
 }
