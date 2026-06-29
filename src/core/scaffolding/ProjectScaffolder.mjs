@@ -37,6 +37,7 @@ export class ProjectScaffolder {
             template = 'empty';
         }
 
+        const templatePath = path.join(TEMPLATE_DIR, template);
         const projectName = options.name ;
         console.log('\nInitializing project...');
         console.log(`Creating project: ${projectName}`);
@@ -59,10 +60,9 @@ export class ProjectScaffolder {
             console.log(`Directory "${projectDir}" already exists, continuing...`);
         }
 
-        const scaffolder = new ProjectScaffolder();
-        scaffolder.#initWithTemplate(template, projectPath, templatePath);
-        scaffolder.#createFoldersStructure(projectPath);
-        scaffolder.#createDefaultConfig(projectPath);
+        this.#initWithTemplate(template, projectPath, templatePath);
+        this.#createFoldersStructure(projectPath);
+        this.#createDefaultConfig(projectPath);
 
         if (true) { // removed 'createReadme' option for now, always create README.md
             const readmeContent = [
