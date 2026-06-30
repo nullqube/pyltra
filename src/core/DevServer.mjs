@@ -27,7 +27,11 @@ export class DevServer extends RuntimeAware{
      */
     async start() {
 
-        await this.buildManager.build();
+        await this.buildManager.build({
+            report: {
+                size: 0
+            }
+        });
 
         const distPath = this.project.getDistPath();
 

@@ -28,18 +28,24 @@ export class BuildManager extends RuntimeAware {
             project
         });
         this.assets = new AssetPipeline(this.runtime, project);
-        this.validator = new ConfigValidator(project);
+        this.validator = new ConfigValidator(this.runtime, project);
     }
 
     /**
      * Full build lifecycle
      */
     async build(options = {}) {
+        const _options = {
+            report:{ // defaults
+                size: 1
+            },
+            ...options
+        }
         await this.validate();
         await this.clean();
         await this.renderer.renderAll();
         await this.assets.processAll();
-        if(options.report.size) {
+        if(_options.report.size ?? 0) {
             this.printSummary();
         }
     }

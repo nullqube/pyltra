@@ -8,7 +8,7 @@ languages:
 
 pages:
   index:
-    file: "en/index.yaml"
+    file: "${lang}/index.yaml"
     fallback:
       title: "Pyltra Starter"
       heading: "Build something quiet and sharp."
