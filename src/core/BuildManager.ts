@@ -53,7 +53,9 @@ export class BuildManager extends RuntimeAware {
         await this.clean();
         await this.renderer.renderAll();
         await this.assets.processAll();
-        if(options.report.size) {
+        // Guard the optional report: the dev server calls build() with no options,
+        // so `report` may be undefined (previously this crashed `pyltra serve`).
+        if(options.report?.size) {
             this.printSummary();
         }
     }
