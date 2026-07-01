@@ -32,24 +32,35 @@ import path from 'path';
 
 import fastGlob from 'fast-glob';
 
-function toPosixPath(value) {
+import type { Project } from '../../project/Project.ts';
+
+function toPosixPath(value: string): string {
     return value.replaceAll(path.sep, '/');
 }
 
-function ensureArray(value) {
+function ensureArray(value: string | string[]): string[] {
     return Array.isArray(value) ? value : [value];
 }
 
+export interface FilesystemAdapterOptions {
+    root?: string;
+    encoding?: BufferEncoding;
+}
+
+interface EncodingOptions {
+    encoding?: BufferEncoding;
+}
+
 export class FilesystemAdapter {
-  encoding: any;
-  project: any;
-  root: any;
+  encoding: BufferEncoding;
+  project: Project;
+  root: string;
 
     // ========================================================
     // Constructor
     // ========================================================
 
-    constructor(project, options: any = {}) {
+    constructor(project: Project, options: FilesystemAdapterOptions = {}) {
         if (!project) {
             throw new Error('FilesystemAdapter requires a project instance.');
         }
@@ -73,33 +84,33 @@ export class FilesystemAdapter {
         return this.root;
     }
 
-    resolve(...segments) {
+    resolve(...segments: string[]) {
         return path.resolve(this.root, ...segments);
     }
 
-    relative(targetPath) {
+    relative(targetPath: string) {
         return toPosixPath(
             path.relative(this.root, targetPath)
         );
     }
 
-    join(...segments) {
+    join(...segments: string[]) {
         return toPosixPath(
             path.join(...segments)
         );
     }
 
-    normalize(targetPath) {
+    normalize(targetPath: string) {
         return toPosixPath(
             path.normalize(targetPath)
         );
     }
 
-    isAbsolute(targetPath) {
+    isAbsolute(targetPath: string) {
         return path.isAbsolute(targetPath);
     }
 
-    resolvePath(targetPath) {
+    resolvePath(targetPath: string) {
         return this.isAbsolute(targetPath)
             ? targetPath
             : this.resolve(targetPath);
@@ -109,7 +120,7 @@ export class FilesystemAdapter {
     // Existence
     // ========================================================
 
-    async exists(targetPath) {
+    async exists(targetPath: string) {
         try {
             await fs.access(
                 this.resolvePath(targetPath)
@@ -126,13 +137,13 @@ export class FilesystemAdapter {
     // Stat
     // ========================================================
 
-    async stat(targetPath) {
+    async stat(targetPath: string) {
         return fs.stat(
             this.resolvePath(targetPath)
         );
     }
 
-    async isFile(targetPath) {
+    async isFile(targetPath: string) {
         try {
             const stats = await this.stat(targetPath);
 
@@ -143,7 +154,7 @@ export class FilesystemAdapter {
         }
     }
 
-    async isDirectory(targetPath) {
+    async isDirectory(targetPath: string) {
         try {
             const stats = await this.stat(targetPath);
 
@@ -158,20 +169,20 @@ export class FilesystemAdapter {
     // Read
     // ========================================================
 
-    async readText(targetPath, encoding = this.encoding) {
+    async readText(targetPath: string, encoding: BufferEncoding = this.encoding) {
         return fs.readFile(
             this.resolvePath(targetPath),
             encoding
         );
     }
 
-    async readBuffer(targetPath) {
+    async readBuffer(targetPath: string) {
         return fs.readFile(
             this.resolvePath(targetPath)
         );
     }
 
-    async readJson(targetPath, options: any = {}) {
+    async readJson(targetPath: string, options: EncodingOptions = {}) {
         const encoding =
             options.encoding ||
             this.encoding;
@@ -181,16 +192,18 @@ export class FilesystemAdapter {
             encoding
         );
 
-        return JSON.parse(content as any);
+        return JSON.parse(content);
     }
 
-    async readDirectory(targetPath = '.', options: any = {}) {
+    async readDirectory(targetPath: string = '.', options: { withFileTypes?: boolean } = {}) {
         return fs.readdir(
             this.resolvePath(targetPath),
             {
                 withFileTypes:
                     options.withFileTypes ?? false
-            }
+            // `withFileTypes` is a dynamic boolean here; cast to match the
+            // string[]-returning readdir overload.
+            } as { withFileTypes: false }
         );
     }
 
@@ -199,9 +212,9 @@ export class FilesystemAdapter {
     // ========================================================
 
     async writeText(
-        targetPath,
-        content,
-        options: any = {}
+        targetPath: string,
+        content: string,
+        options: EncodingOptions = {}
     ) {
         const absolutePath =
             this.resolvePath(targetPath);
@@ -222,9 +235,9 @@ export class FilesystemAdapter {
     }
 
     async writeJson(
-        targetPath,
-        data,
-        options: any = {}
+        targetPath: string,
+        data: unknown,
+        options: { spaces?: number; encoding?: BufferEncoding } = {}
     ) {
         const spaces =
             options.spaces ?? 4;
@@ -243,9 +256,9 @@ export class FilesystemAdapter {
     }
 
     async appendText(
-        targetPath,
-        content,
-        options: any = {}
+        targetPath: string,
+        content: string,
+        options: EncodingOptions = {}
     ) {
         const absolutePath =
             this.resolvePath(targetPath);
@@ -269,7 +282,7 @@ export class FilesystemAdapter {
     // Directory
     // ========================================================
 
-    async ensureDirectory(targetPath) {
+    async ensureDirectory(targetPath: string) {
         await fs.mkdir(
             this.resolvePath(targetPath),
             {
@@ -278,7 +291,7 @@ export class FilesystemAdapter {
         );
     }
 
-    async emptyDirectory(targetPath) {
+    async emptyDirectory(targetPath: string) {
         const absolutePath =
             this.resolvePath(targetPath);
 
@@ -296,7 +309,7 @@ export class FilesystemAdapter {
     // Remove
     // ========================================================
 
-    async remove(targetPath) {
+    async remove(targetPath: string) {
         await fs.rm(
             this.resolvePath(targetPath),
             {
@@ -310,7 +323,7 @@ export class FilesystemAdapter {
     // Move / Copy
     // ========================================================
 
-    async copy(from, to, options: any = {}) {
+    async copy(from: string, to: string, options: { recursive?: boolean; force?: boolean } = {}) {
         const sourcePath =
             this.resolvePath(from);
 
@@ -334,7 +347,7 @@ export class FilesystemAdapter {
         );
     }
 
-    async move(from, to) {
+    async move(from: string, to: string) {
         const sourcePath =
             this.resolvePath(from);
 
@@ -355,7 +368,19 @@ export class FilesystemAdapter {
     // Discovery
     // ========================================================
 
-    async glob(patterns, options: any = {}) {
+    async glob(
+        patterns: string | string[],
+        options: {
+            cwd?: string;
+            absolute?: boolean;
+            onlyFiles?: boolean;
+            onlyDirectories?: boolean;
+            dot?: boolean;
+            deep?: boolean;
+            unique?: boolean;
+            ignore?: string[];
+        } = {}
+    ) {
         const normalizedPatterns =
             ensureArray(patterns);
 
@@ -386,7 +411,9 @@ export class FilesystemAdapter {
 
                 ignore:
                     options.ignore || []
-            }
+            // fast-glob types `deep` as a number, but the existing default is a
+            // boolean; cast the options bag through unknown to preserve behavior.
+            } as unknown as fastGlob.Options
         );
 
         return entries.map(entry =>
@@ -398,19 +425,19 @@ export class FilesystemAdapter {
     // Metadata
     // ========================================================
 
-    async getModifiedTime(targetPath) {
+    async getModifiedTime(targetPath: string) {
         const stats = await this.stat(targetPath);
 
         return stats.mtime;
     }
 
-    async getCreatedTime(targetPath) {
+    async getCreatedTime(targetPath: string) {
         const stats = await this.stat(targetPath);
 
         return stats.birthtime;
     }
 
-    async getSize(targetPath) {
+    async getSize(targetPath: string) {
         const stats = await this.stat(targetPath);
 
         return stats.size;
@@ -420,7 +447,7 @@ export class FilesystemAdapter {
     // Utility
     // ========================================================
 
-    async touch(targetPath) {
+    async touch(targetPath: string) {
         const absolutePath =
             this.resolvePath(targetPath);
 
@@ -443,8 +470,8 @@ export class FilesystemAdapter {
     }
 
     async ensureFile(
-        targetPath,
-        defaultContent = ''
+        targetPath: string,
+        defaultContent: string = ''
     ) {
         if (await this.exists(targetPath)) {
             return;
