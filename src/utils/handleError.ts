@@ -1,4 +1,4 @@
-export function handleError(error, options: any = {}) {
+export function handleError(error: Error, options: { debug?: boolean } = {}) {
   const debug = options.debug || process.env.DEBUG;
 
   if (debug) {

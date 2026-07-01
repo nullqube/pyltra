@@ -6,7 +6,7 @@ import path from 'path';
 /**
  * Check if directory contains a pyltra project
  */
-function isProjectRoot(dir) {
+function isProjectRoot(dir: string): boolean {
   const configPath = path.join(dir, 'config.yaml');
   return fs.existsSync(configPath);
 }
@@ -14,7 +14,7 @@ function isProjectRoot(dir) {
 /**
  * Walk up the directory tree to find project root
  */
-function findUp(startDir) {
+function findUp(startDir: string): string | null {
   let dir = path.resolve(startDir);
 
   while (true) {
@@ -35,7 +35,7 @@ function findUp(startDir) {
 /**
  * Resolve project root
  */
-export function resolveProjectRoot(options: any = {}) {
+export function resolveProjectRoot(options: { cwd?: string; root?: string } = {}) {
   const cwd = options.cwd || process.cwd();
 
   // 1. Explicit override (highest priority)
