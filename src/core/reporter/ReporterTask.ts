@@ -1,11 +1,13 @@
+import type { Reporter } from "./Reporter.ts";
+
 export class ReporterTask {
-  endTime: any;
-  message: any;
-  progress: any;
-  reporter: any;
-  startTime: any;
+  endTime: number | null;
+  message: string;
+  progress: number;
+  reporter: Reporter;
+  startTime: number | null;
   status: string;
-    constructor(reporter, message) {
+    constructor(reporter: Reporter, message: string) {
         this.reporter = reporter;
 
         this.message = message;
@@ -18,7 +20,7 @@ export class ReporterTask {
         this.endTime = null;
     }
 
-    start(message = this.message) {
+    start(message: string = this.message) {
         this.status = "running";
 
         this.message = message;
@@ -30,7 +32,7 @@ export class ReporterTask {
         return this;
     }
 
-    update(message) {
+    update(message: string) {
         this.message = message;
 
         this.reporter.render();
@@ -38,7 +40,7 @@ export class ReporterTask {
         return this;
     }
 
-    setProgress(value) {
+    setProgress(value: number) {
         this.progress = value;
 
         this.reporter.render();
@@ -46,7 +48,7 @@ export class ReporterTask {
         return this;
     }
 
-    succeed(message = this.message) {
+    succeed(message: string = this.message) {
         this.status = "success";
 
         this.message = message;
@@ -58,7 +60,7 @@ export class ReporterTask {
         return this;
     }
 
-    fail(message = this.message) {
+    fail(message: string = this.message) {
         this.status = "error";
 
         this.message = message;
@@ -70,7 +72,7 @@ export class ReporterTask {
         return this;
     }
 
-    warn(message = this.message) {
+    warn(message: string = this.message) {
         this.status = "warn";
 
         this.message = message;

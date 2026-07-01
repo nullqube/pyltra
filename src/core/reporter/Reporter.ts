@@ -2,14 +2,15 @@ import ora from "ora";
 import chalk from "chalk";
 
 import { RuntimeAware } from "../runtime/RuntimeAware.ts";
+import type { Runtime } from "../runtime/Runtime.ts";
 
 import { ReporterTask } from "./ReporterTask.ts";
 import { TerminalRenderer } from "./TerminalRenderer.ts";
 
 export class Reporter extends RuntimeAware {
-  renderer: any;
-  tasks: any[];
-    constructor({ runtime }: any = {}) {
+  renderer: TerminalRenderer;
+  tasks: ReporterTask[];
+    constructor({ runtime }: { runtime?: Runtime } = {}) {
         super({ runtime });
 
         this.renderer = new TerminalRenderer();
@@ -17,7 +18,7 @@ export class Reporter extends RuntimeAware {
         this.tasks = [];
     }
 
-    task(message) {
+    task(message: string) {
         const task = new ReporterTask(this, message);
 
         this.tasks.push(task);
@@ -40,7 +41,7 @@ export class Reporter extends RuntimeAware {
         );
     }
 
-    formatTask(task) {
+    formatTask(task: ReporterTask) {
         switch (task.status) {
             case "running":
                 return chalk.blue("◌") + " " + task.message;
@@ -62,7 +63,7 @@ export class Reporter extends RuntimeAware {
         }
     }
 
-    async withTask(message, fn) {
+    async withTask<T>(message: string, fn: (task: ReporterTask) => Promise<T> | T) {
         const task = this.task(message);
 
         task.start();

@@ -7,11 +7,11 @@ export class TerminalRenderer {
         readline.clearScreenDown(process.stdout);
     }
 
-    write(line = "") {
+    write(line: string = "") {
         process.stdout.write(line + "\n");
     }
 
-    rewrite(lines = []) {
+    rewrite(lines: string[] = []) {
         this.clear();
 
         for (const line of lines) {
