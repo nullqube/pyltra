@@ -3,13 +3,14 @@ import path from 'path';
 import { DataLoader } from '../data/DataLoader.ts';
 import { ConfigLoader } from '../domain/config/ConfigLoader.ts';
 import { ProjectPaths } from './ProjectPaths.ts';
+import type { SiteConfig, PathsConfig, SiteMeta } from '../domain/config/types.ts';
 
-function clonePlainValue(value) {
+function clonePlainValue<T>(value: T): T {
     if (value === null || value === undefined) return value;
     return structuredClone(value);
 }
 
-function joinProjectPath(root, projectPath) {
+function joinProjectPath(root: string, projectPath?: string): string {
     if (!projectPath) return root;
     return path.isAbsolute(projectPath)
         ? projectPath
@@ -25,14 +26,28 @@ function joinProjectPath(root, projectPath) {
  * state. Work such as rendering, building, serving, watching, content discovery,
  * and broad validation belongs to systems or adapters that receive a Project.
  */
+export interface ProjectMetadata {
+    root: string;
+    title: string;
+    languageCodes: string[];
+}
+
+export interface ProjectOptions {
+    cwd?: string;
+    root?: string;
+    config?: SiteConfig;
+    data?: DataLoader;
+    paths?: PathsConfig;
+}
+
 export class Project {
-  _assertLoaded: any;
-  _metadata: any;
-  config: any;
-  cwd: any;
-  data: any;
-  paths: any;
-  root: any;
+  _assertLoaded?: () => void;
+  _metadata: ProjectMetadata;
+  config: SiteConfig;
+  cwd: string;
+  data: DataLoader;
+  paths: ProjectPaths;
+  root: string;
     /**
      * @param {Object} options
      * @param {string} [options.cwd]
@@ -41,7 +56,7 @@ export class Project {
      * @param {Object} [options.data]
      * @param {Object} [options.paths]
      */
-    constructor(options: any = {}) {
+    constructor(options: ProjectOptions = {}) {
         const root = options.root || options.cwd || process.cwd();
         this.root = path.resolve(root);
         this.cwd = this.root;
@@ -62,7 +77,9 @@ export class Project {
         /** @type {PathsConfig|null} */
         this.paths = new ProjectPaths({
             root: this.root,
-            paths: options.paths
+            // PathsConfig has no index signature; ProjectPaths treats paths as a
+            // dynamic key/value bag, so view it as a generic record.
+            paths: options.paths as unknown as Record<string, unknown>
         });
 
         /** @type {DataLoader|null} */
@@ -110,7 +127,7 @@ export class Project {
      * @param {'src'|'dist'|'data'} key
      * @returns {string}
      */
-    getPath(key) {
+    getPath(key: string) {
         // if (!Object.hasOwn(this.paths, key)) {
         //     throw new Error(`Unknown project path "${key}".`);
         // }
@@ -167,7 +184,7 @@ export class Project {
      *
      * @param {DataLoader} data
      */
-    setData(data) {
+    setData(data: DataLoader) {
         if (data == null) {
             throw new Error('Project requires a data instance.');
         }
@@ -199,8 +216,8 @@ export class Project {
         };
     }
 
-    _buildMetadata() {
-        const site = this.config.site || {};
+    _buildMetadata(): ProjectMetadata {
+        const site: SiteMeta = this.config.site || {};
 
         return {
             root: this.root,

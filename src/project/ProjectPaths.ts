@@ -5,15 +5,20 @@ import path from 'path';
  * ------------
  * Canonical project path container and resolver.
  */
+export interface ProjectPathsOptions {
+    root: string;
+    paths?: Record<string, unknown>;
+}
+
 export class ProjectPaths {
-  paths: any;
-  root: any;
+  paths: Record<string, unknown>;
+  root: string;
     /**
      * @param {Object} options
      * @param {string} options.root
      * @param {Object} options.paths
      */
-    constructor({ root, paths }) {
+    constructor({ root, paths }: ProjectPathsOptions) {
         if (!root) {
             throw new Error('ProjectPaths requires "root".');
         }
@@ -31,7 +36,7 @@ export class ProjectPaths {
      * @param {string} key
      * @returns {*}
      */
-    get(key) {
+    get(key: string) {
         if (!this.has(key)) {
             throw new Error(`Unknown project path "${key}".`);
         }
@@ -45,7 +50,7 @@ export class ProjectPaths {
      * @param {string} key
      * @returns {string}
      */
-    resolvePath(key) {
+    resolvePath(key: string) {
         const value = this.get(key);
 
         if (typeof value !== 'string') {
@@ -63,7 +68,7 @@ export class ProjectPaths {
      * @param {string} key
      * @returns {boolean}
      */
-    has(key) {
+    has(key: string) {
         return Object.hasOwn(this.paths, key);
     }
 
