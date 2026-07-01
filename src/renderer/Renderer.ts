@@ -27,6 +27,10 @@ import { createNunjucksEnvironment } from './NunjucksEnvironment.ts';
 import { TemplateRepository } from "./TemplateRepository.ts";
 import { OutputWriter } from './OutputWriter.ts';
 import { BuildArtifact } from '../core/diagnostics/BuildArtifact.ts';
+import type { Project } from '../project/Project.ts';
+import type { Runtime } from '../core/runtime/Runtime.ts';
+import type { DataLoader } from '../data/DataLoader.ts';
+import type { Environment } from 'nunjucks';
 
 const HTML_MINIFY_OPTIONS = {
     collapseWhitespace: true,
@@ -34,24 +38,33 @@ const HTML_MINIFY_OPTIONS = {
     minifyCSS: true,
     minifyJS: true
 };
+export interface RendererDependencies {
+    project?: Project;
+    dataLoader?: DataLoader;
+    environment?: Environment;
+    runtime?: Runtime;
+}
+
 export class Renderer extends RuntimeAware {
-  dataLoader: any;
-  env: any;
-  fsAdapter: any;
-  outputWriter: any;
-  project: any;
-  templateRepository: any;
-    constructor(input, options: any = {}) {
+  dataLoader: DataLoader;
+  env: Environment;
+  fsAdapter: FilesystemAdapter;
+  outputWriter: OutputWriter;
+  project: Project;
+  templateRepository: TemplateRepository;
+    constructor(input: Project | RendererDependencies, options: RendererDependencies = {}) {
         // Supports both new Renderer(project, options) and
         // new Renderer({ project, dataLoader, environment, runtime }).
         // If the first argument has a "project" property, treat it as the
         // dependency object; otherwise treat the first argument as the project
         // and read optional dependencies from the second argument.
+        // `input` is polymorphic; view it as the dependency object when it carries deps.
         const hasProjectOption = input && Object.hasOwn(input, 'project');
-        const runtime = hasProjectOption ? input.runtime : options.runtime;
-        const project = hasProjectOption ? input.project : input;
-        const dataLoader = hasProjectOption ? input.dataLoader : options.dataLoader;
-        const environment = hasProjectOption ? input.environment : options.environment;
+        const deps = input as RendererDependencies;
+        const runtime = hasProjectOption ? deps.runtime : options.runtime;
+        const project = hasProjectOption ? deps.project : (input as Project);
+        const dataLoader = hasProjectOption ? deps.dataLoader : options.dataLoader;
+        const environment = hasProjectOption ? deps.environment : options.environment;
 
         super({ runtime });
         this.project = project;
@@ -78,7 +91,7 @@ export class Renderer extends RuntimeAware {
      *
      * @param {string} lang
      */
-    async renderLanguage(lang) {
+    async renderLanguage(lang: string) {
         await this.renderPages(lang);
         await this.renderCollections(lang);
     }
@@ -88,7 +101,7 @@ export class Renderer extends RuntimeAware {
      *
      * @param {string} lang
      */
-    async renderPages(lang) {
+    async renderPages(lang: string) {
         const templates = await this.templateRepository.getPageTemplates();
 
         for( const template of templates ) {
@@ -120,16 +133,17 @@ export class Renderer extends RuntimeAware {
      *
      * @param {string} lang
      */
-    async renderCollections(lang) {
+    async renderCollections(lang: string) {
         const config = this.project.getConfig();
         for( const [collectionName, collectionConfig] of Object.entries(config.collections) ) {
-            const {item_template: itemTemplate, items = []}: any = collectionConfig;
+            const {item_template: itemTemplate, items = []} = collectionConfig;
             if (!itemTemplate) {
                 this.warn(`Skipping collection "${collectionName}" because item_template is missing.`);
                 continue;
             }
             for( const item of items ) {
-                const slug = item.slug ?? item;
+                // `slug` is item.slug; the `?? item` fallback is legacy, so treat it as a string.
+                const slug = (item.slug ?? item) as string;
                 if (!slug) {
                     // TODO: This should be a validation error, not a warning. 
                     //  The collection item is malformed and we can't render it at all,
@@ -188,7 +202,7 @@ export class Renderer extends RuntimeAware {
         }
     }
 
-    _renderTemplate(templateName, context) {
+    _renderTemplate(templateName: string, context: object) {
         try {
             return this.env.render(templateName, context);
         } catch (err) {
@@ -199,7 +213,7 @@ export class Renderer extends RuntimeAware {
         }
     }
 
-    _getPageContext(lang, pageName) {
+    _getPageContext(lang: string, pageName: string) {
         const result = this.dataLoader.getPageContext(lang, pageName);
 
         if (result.status !== 'render') {
@@ -217,9 +231,10 @@ export class Renderer extends RuntimeAware {
         };
     }
 
-    #getCollectionsContext(lang) {
+    #getCollectionsContext(lang: string) {
         const collectionConfigs = this.project.getConfig().collections ?? {};
-        const collections = {};
+        // Collections keyed dynamically by collection name.
+        const collections: Record<string, unknown> = {};
 
         for (const collectionName of Object.keys(collectionConfigs)) {
             collections[collectionName] =
@@ -229,7 +244,7 @@ export class Renderer extends RuntimeAware {
         return collections;
     }
 
-    #maybeMinify(html) {
+    #maybeMinify(html: string): string {
         if (!this.isProduction) {
             return html;
         }
@@ -237,7 +252,7 @@ export class Renderer extends RuntimeAware {
         return htmlMinifier.minify(html, HTML_MINIFY_OPTIONS);
     }
 
-    #warnSkippedPage(lang, pageName, reason) {
+    #warnSkippedPage(lang: string, pageName: string, reason: string | null) {
         if (reason === 'draft') {
             this.warn(`Skipping draft page: ${lang}/${pageName}`);
             this.warn('If this is unexpected, check the page data file for draft=true.');
@@ -247,7 +262,7 @@ export class Renderer extends RuntimeAware {
         this.warn(`Skipping page: ${lang}/${pageName}`);
     }
 
-    #warnSkippedCollectionItem(lang, collectionName, slug, reason) {
+    #warnSkippedCollectionItem(lang: string, collectionName: string, slug: string, reason: string | null) {
         if (reason === 'draft') {
             this.warn(`Skipping draft: ${lang}/${collectionName}/${slug}`);
             this.warn(`If this is unexpected, check the item's data file for draft=true.`);
