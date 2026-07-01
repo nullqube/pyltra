@@ -2,17 +2,27 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 
-import { CONFIG_DEFAULTS } from './defaults.mjs';
-import { validateConfig, mergeWithDefaults, buildPaths } from './helpers.mjs';
+import { CONFIG_DEFAULTS } from './defaults.ts';
+import { validateConfig, mergeWithDefaults, buildPaths } from './helpers.ts';
 
-import { RuntimeAware } from '../../core/runtime/RuntimeAware.mjs';
+import { RuntimeAware } from '../../core/runtime/RuntimeAware.ts';
+import type { SiteConfig, PathsConfig } from './types.ts';
+import type { Runtime } from '../../core/runtime/Runtime.ts';
 
-function clonePlainValue(value) {
+export interface ConfigLoaderOptions {
+    runtime?: Runtime;
+    cwd?: string;
+    configFile?: string;
+    isProd?: boolean;
+    validate?: boolean;
+}
+
+function clonePlainValue<T>(value: T): T {
     if (value === null || value === undefined) return value;
     return JSON.parse(JSON.stringify(value));
 }
 
-function assertPlainObject(value, label) {
+function assertPlainObject(value: unknown, label: string) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new Error(`${label} must be a YAML object.`);
     }
@@ -26,6 +36,13 @@ function assertPlainObject(value, label) {
  * belongs to Project, systems, and data/rendering classes.
  */
 export class ConfigLoader extends RuntimeAware {
+  _config: SiteConfig | null;
+  _paths: PathsConfig | null;
+  _rawConfig: unknown;
+  configFile: string;
+  configPath: string;
+  cwd: string;
+  validate: boolean;
     /**
      * @param {Object} options
      * @param {string} [options.cwd]
@@ -33,7 +50,7 @@ export class ConfigLoader extends RuntimeAware {
      * @param {boolean} [options.isProd]
      * @param {boolean} [options.validate]
      */
-    constructor(options = {}) {
+    constructor(options: ConfigLoaderOptions = {}) {
         super({ runtime: options.runtime });
         
         const {
@@ -141,7 +158,7 @@ export class ConfigLoader extends RuntimeAware {
         return this.configPath;
     }
 
-    _normalizeConfig(config) {
+    _normalizeConfig(config: SiteConfig): SiteConfig {
         return {
             ...config,
             site: config.site || CONFIG_DEFAULTS.site || {},

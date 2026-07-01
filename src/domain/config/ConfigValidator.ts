@@ -1,9 +1,12 @@
-// 
-// 
-// 
+//
+//
+//
+
+import type { Project } from '../../project/Project.ts';
 
 export default class ConfigValidator {
-    constructor(project) {
+  project: Project;
+    constructor(project: Project) {
         this.project = project;
     }
 

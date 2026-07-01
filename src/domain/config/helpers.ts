@@ -1,12 +1,31 @@
+import type { SiteConfig, PathsConfig } from './types.ts';
+
 // ---------------------------------------------------------------------------
 // Schema validation
 // ---------------------------------------------------------------------------
 
 /**
- * Validates the raw loaded config and throws with all errors listed at once.
- * @param {unknown} config
+ * Loose view of the not-yet-validated config. Every field is optional and its
+ * contents are `unknown`, so the validator has to prove each shape itself.
  */
-export function validateConfig(config) {
+interface RawConfigShape {
+    languages?: Array<{ code?: unknown; name?: unknown }>;
+    pages?: unknown;
+    collections?: Record<string, {
+        template?: unknown;
+        item_template?: unknown;
+        dataFile?: unknown;
+        items?: Array<{ slug?: unknown; file?: unknown }>;
+    }>;
+    bundles?: unknown;
+    paths?: unknown;
+}
+
+/**
+ * Validates the raw loaded config and throws with all errors listed at once.
+ */
+export function validateConfig(input: unknown) {
+    const config = input as RawConfigShape;
     const errors = [];
 
     if (!config || typeof config !== 'object') {
@@ -82,11 +101,8 @@ export function validateConfig(config) {
 
 /**
  * Deep merges defaults with user config. User values always win.
- * @param {SiteConfig} defaults
- * @param {SiteConfig} userConfig
- * @returns {SiteConfig}
  */
-export function mergeWithDefaults(defaults, userConfig) {
+export function mergeWithDefaults(defaults: SiteConfig, userConfig: SiteConfig): SiteConfig {
     return {
         ...defaults,
         ...userConfig,
@@ -108,10 +124,8 @@ export function mergeWithDefaults(defaults, userConfig) {
 /**
  * Derives PATHS from the merged config so users can override
  * src, dist, data, or templates in config.yaml.
- * @param {SiteConfig} config
- * @returns {PathsConfig}
  */
-export function buildPaths(config) {
+export function buildPaths(config: SiteConfig): PathsConfig {
     const overrides = config.paths || {};
 
     const src  = overrides.src  || 'src';

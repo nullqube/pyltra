@@ -1,12 +1,13 @@
 
 
 
+import type { SiteConfig } from './types.ts';
+
 // ---------------------------------------------------------------------------
 // Defaults — merged with user config so consumers never need || {}
 // ---------------------------------------------------------------------------
 
-/** @type {SiteConfig} */
-export const CONFIG_DEFAULTS = {
+export const CONFIG_DEFAULTS: SiteConfig = {
     site: {
         title: 'Pyltra Site'
     },
