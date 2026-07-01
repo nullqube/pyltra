@@ -5,12 +5,22 @@
     "main": "src/index.mjs",
     "type": "module",
     "scripts": {
-        "build": "node ./bin/cli.js build",
-        "start": "node ./bin/cli.js serve"
+        "build": "node ./bin/cli.ts build",
+        "start": "node ./bin/cli.ts serve",
+        "typecheck": "tsc --noEmit",
+        "bundle": "node ./scripts/build.mjs",
+        "prepublishOnly": "node ./scripts/build.mjs"
     },
     "bin": {
-        "pyltra": "./bin/cli.js"
+        "pyltra": "./dist/bin/cli.js"
     },
+    "files": [
+        "dist",
+        "templates",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md"
+    ],
     "dependencies": {
         "autoprefixer": "^10.4.27",
         "browser-sync": "^3.0.2",
@@ -55,6 +65,8 @@
     },
     "homepage": "https://github.com/nullqube/pyltra#readme",
     "devDependencies": {
-        "nodemon": "^3.1.14"
+        "@types/node": "^26.0.1",
+        "nodemon": "^3.1.14",
+        "typescript": "^6.0.3"
     }
 }

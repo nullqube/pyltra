@@ -1,0 +1,30 @@
+{
+  // Emit configuration used by `npm run bundle` (scripts/build.mjs).
+  // Compiles the TypeScript sources to plain ESM JavaScript in dist/,
+  // preserving the directory structure so that runtime path resolution
+  // (e.g. the templates directory in ProjectScaffolder) keeps working.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    // Cannot keep `.ts` import extensions when emitting; instead rewrite
+    // relative `.ts` specifiers to `.js` in the emitted output.
+    "allowImportingTsExtensions": false,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts", "bin/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "templates",
+    "tests",
+    "src/index.mjs",
+    "src/tasks",
+    "src/utils/validate.mjs",
+    "src/utils/sizeReporter.ts",
+    "src/utils/files.ts"
+  ]
+}
