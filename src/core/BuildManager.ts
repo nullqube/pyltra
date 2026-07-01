@@ -18,12 +18,22 @@ import { Renderer } from '../renderer/Renderer.ts';
 import { AssetPipeline } from '../domain/assets/AssetPipeline.ts';
 import { RuntimeAware } from './runtime/RuntimeAware.ts';
 import { Humanize } from '../utils/Humanize.ts';
+import type { Runtime } from './runtime/Runtime.ts';
+import type { Project } from '../project/Project.ts';
+
+export interface BuildOptions {
+    report?: {
+        size?: boolean | number;
+        depth?: number;
+    };
+}
+
 export class BuildManager extends RuntimeAware {
-  assets: any;
-  project: any;
-  renderer: any;
-  validator: any;
-    constructor( runtime, project ) {
+  assets: AssetPipeline;
+  project: Project;
+  renderer: Renderer;
+  validator: ConfigValidator;
+    constructor( runtime: Runtime, project: Project ) {
         super({ runtime });
         this.project = project;
 
@@ -38,7 +48,7 @@ export class BuildManager extends RuntimeAware {
     /**
      * Full build lifecycle
      */
-    async build(options: any = {}) {
+    async build(options: BuildOptions = {}) {
         await this.validate();
         await this.clean();
         await this.renderer.renderAll();
@@ -74,7 +84,7 @@ export class BuildManager extends RuntimeAware {
         console.log(`Total size: ${Humanize.fileSize(summary.totalSize)}`);
         console.log('-----------------------------------');
         const report = this.diagnostics.buildSizeReport();
-        for (const [type, data] of Object.entries(report.byType) as [string, any][]) {
+        for (const [type, data] of Object.entries(report.byType)) {
             console.log(`${type}:\n  Count: ${data.count}\n  Total Size: ${Humanize.fileSize(data.totalSize)}`);
         }
     }

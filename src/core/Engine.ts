@@ -29,23 +29,32 @@ import { DevServer } from './DevServer.ts';
 import { ProjectScaffolder } from './scaffolding/ProjectScaffolder.ts';
 import { ConfigLoader } from '../domain/config/ConfigLoader.ts';
 import { DataLoader } from '../data/DataLoader.ts';
+import type { CommandInput } from '../interfaces/cli/CLIAdapter.ts';
+import type { BuildOptions } from './BuildManager.ts';
+
+export interface EngineOptions {
+  runtime?: Runtime;
+  cwd?: string;
+  configFile?: string;
+  mode?: 'dev' | 'prod';
+}
 
 export class PyltraEngine extends RuntimeAware {
   _booted: boolean;
   _loaded: boolean;
-  buildManager: any;
-  configLoader: any;
-  dataLoader: any;
-  devServer: any;
-  options: any;
-  project: any;
+  buildManager: BuildManager;
+  configLoader: ConfigLoader;
+  dataLoader: DataLoader;
+  devServer: DevServer;
+  options: { cwd: string; configFile: string };
+  project: Project;
 
     /**
      * @param {Object} options
      * @param {string} [options.cwd] - Working directory of the project
      * @param {'dev' | 'prod'} [options.mode]
      */
-    constructor( options: any = {} ) {
+    constructor( options: EngineOptions = {} ) {
         const runtime = options.runtime ?? new Runtime({
             environment: options.mode === 'prod' ? 'production' : 'development'
         });
@@ -66,7 +75,7 @@ export class PyltraEngine extends RuntimeAware {
         this._loaded = false;
     }
 
-    async run(input) {
+    async run(input: CommandInput) {
         switch(input.command) {
             case 'init':
                 await this.init(input.args, input.options);
@@ -135,7 +144,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Initializes a new project (used by CLI init command)
      */
-    async init(args, options) {
+    async init(args: Record<string, unknown>, options: Record<string, unknown>) {
         // TODO: Add validation for project name (e.g. no spaces, special characters, etc.)
         // TODO: Add option to specify a custom directory for the project instead of always using the current working directory
         // TODO: Add option to skip prompts and use defaults for all options (e.g. `--defaults` flag)
@@ -149,15 +158,16 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Build the project
      */
-    async build(args, options) {
+    async build(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
-        await this.buildManager.build(options);
+        // CLI options are dynamic; hand them to the typed build as BuildOptions.
+        await this.buildManager.build(options as unknown as BuildOptions);
     }
 
     /**
      * Validates project configuration and structure
      */
-    async validate(args, options) {
+    async validate(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
         await this.buildManager.validate();
     }
@@ -165,7 +175,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Starts dev server + watchers
      */
-    async serve(args?, options?) {
+    async serve(args?: Record<string, unknown>, options?: Record<string, unknown>) {
         await this.load();
         await this.devServer.start();
     }
@@ -177,7 +187,7 @@ export class PyltraEngine extends RuntimeAware {
     /**
      * Cleans output directory
      */
-    async clean(args, options) {
+    async clean(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
         await this.buildManager.clean();
     }

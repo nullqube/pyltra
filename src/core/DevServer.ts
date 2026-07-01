@@ -11,14 +11,18 @@ import chokidar from 'chokidar';
 import path from 'path';
 
 import { RuntimeAware } from './runtime/RuntimeAware.ts'
-export class DevServer extends RuntimeAware{
-  buildManager: any;
-  isRebuilding: boolean;
-  pendingReloadMode: any;
-  project: any;
-  server: any;
+import type { Runtime } from './runtime/Runtime.ts';
+import type { Project } from '../project/Project.ts';
+import type { BuildManager } from './BuildManager.ts';
 
-    constructor(runtime, project, buildManager) {
+export class DevServer extends RuntimeAware{
+  buildManager: BuildManager;
+  isRebuilding: boolean;
+  pendingReloadMode: 'styles' | 'full' | null;
+  project: Project;
+  server: browserSync.BrowserSyncInstance;
+
+    constructor(runtime: Runtime, project: Project, buildManager: BuildManager) {
         super({ runtime });
         this.project = project;
         this.buildManager = buildManager;
@@ -55,7 +59,7 @@ export class DevServer extends RuntimeAware{
         });
     }
 
-    queueRebuild(changedPath) {
+    queueRebuild(changedPath: string) {
         const srcPath = this.project.getSourcePath();
         const nextReloadMode = this.isStyleFile(changedPath) ? 'styles' : 'full';
 
@@ -70,7 +74,7 @@ export class DevServer extends RuntimeAware{
         void this.flushRebuilds();
     }
 
-    mergeReloadMode(reloadMode) {
+    mergeReloadMode(reloadMode: 'styles' | 'full') {
         this.pendingReloadMode = this.pendingReloadMode === 'full'
             ? 'full'
             : reloadMode;
@@ -95,7 +99,7 @@ export class DevServer extends RuntimeAware{
         }
     }
 
-    async rebuild(reloadMode) {
+    async rebuild(reloadMode: 'styles' | 'full') {
         if (this.shouldLogVerbose) {
             this.info('Rebuilding...');
         }
@@ -111,7 +115,7 @@ export class DevServer extends RuntimeAware{
         this.server.reload();
     }
 
-    isStyleFile(filePath) {
+    isStyleFile(filePath: string) {
         const extension = path.extname(filePath).toLowerCase();
         return extension === '.css' || extension === '.scss';
     }
