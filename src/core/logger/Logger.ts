@@ -38,16 +38,31 @@
  * runtime.setLogger(logger);
  */
 import { TransportManager } from "./TransportManager.ts";
+import type { Transport } from "./transports/Transport.ts";
+import type { LogLevel, LogMeta, LogEvent } from "./types.ts";
+
+export interface LoggerOptions {
+  debug?: boolean;
+  debugEnabled?: boolean;
+  verbose?: boolean;
+  silent?: boolean;
+  environment?: string;
+  prefix?: string;
+  level?: string;
+  transports?: Transport[];
+}
+
+export type LoggerConfig = Omit<LoggerOptions, "transports">;
 
 export class Logger {
-  debugEnabled: any;
-  depth: any;
-  environment: any;
-  level: any;
-  prefix: any;
-  silent: any;
-  transports: any;
-  verbose: any;
+  debugEnabled: boolean;
+  depth: number;
+  environment: string;
+  level: string;
+  prefix: string;
+  silent: boolean;
+  transports: TransportManager;
+  verbose: boolean;
     /**
      * @param {Object} [options]
      * @param {boolean} [options.debug=false] - Debug mode flag.
@@ -68,7 +83,7 @@ export class Logger {
         prefix = "",
         level = "debug",
         transports = [],
-    }: any = {}) {
+    }: LoggerOptions = {}) {
         this.setConfig({
             debug,
             debugEnabled,
@@ -113,7 +128,7 @@ export class Logger {
         environment,
         prefix,
         level,
-    }: any = {}) {
+    }: LoggerConfig = {}) {
         if (debug !== undefined) {
             this.debugEnabled = debug;
         }
@@ -169,7 +184,7 @@ export class Logger {
      * @param {Object} [meta]
      * @returns {Object}
      */
-    createEvent(level, message, meta: any = {}) {
+    createEvent(level: LogLevel, message: string, meta: LogMeta = {}): LogEvent {
         return {
             time: new Date().toISOString(),
             level,
@@ -192,7 +207,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    emit(level, message, meta = {}) {
+    emit(level: LogLevel, message: string, meta: LogMeta = {}) {
         if (this.shouldSilenceOutput) {
             return;
         }
@@ -207,7 +222,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    debug(message, meta = {}) {
+    debug(message: string, meta: LogMeta = {}) {
         if (!this.canDebug && !this.shouldLogVerbose) {
             return;
         }
@@ -221,7 +236,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    info(message, meta = {}) {
+    info(message: string, meta: LogMeta = {}) {
         this.emit("info", message, meta);
     }
 
@@ -231,7 +246,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    warn(message, meta = {}) {
+    warn(message: string, meta: LogMeta = {}) {
         this.emit("warn", message, meta);
     }
 
@@ -241,7 +256,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    error(message, meta = {}) {
+    error(message: string, meta: LogMeta = {}) {
         this.emit("error", message, meta);
     }
 
@@ -251,7 +266,7 @@ export class Logger {
      * @param {string} message
      * @param {Object} [meta]
      */
-    success(message, meta = {}) {
+    success(message: string, meta: LogMeta = {}) {
         this.emit("success", message, meta);
     }
 
@@ -263,7 +278,7 @@ export class Logger {
      * @param {Object} [meta]
      * @returns {string} groupId
      */
-    group(label, meta: any = {}) {
+    group(label: string, meta: LogMeta = {}): string {
         const groupId = meta.groupId ?? crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
         this.info(`▶ ${label}`, {
@@ -283,7 +298,7 @@ export class Logger {
      * @param {string} label
      * @param {Object} [meta]
      */
-    groupEnd(label, meta = {}) {
+    groupEnd(label: string, meta: LogMeta = {}) {
         this.depth = Math.max(0, this.depth - 1);
 
         this.info(`◀ ${label}`, {
@@ -300,7 +315,7 @@ export class Logger {
      * @param {Object} [meta]
      * @returns {*}
      */
-    async withGroup(label, fn, meta = {}) {
+    async withGroup<T>(label: string, fn: (ctx: { groupId: string }) => Promise<T> | T, meta: LogMeta = {}): Promise<T> {
         const groupId = this.group(label, meta);
 
         try {
@@ -316,7 +331,7 @@ export class Logger {
      * @param {string} [char] - Character to repeat.
      * @param {number} [length] - Number of repetitions.
      */
-    line(char = "─", length = 23) {
+    line(char: string = "─", length: number = 23) {
         this.emit("line", char.repeat(length), {
             depth: this.depth,
         });

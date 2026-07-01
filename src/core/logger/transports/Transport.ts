@@ -4,15 +4,23 @@
  * Base contract for logger transports. Concrete transport classes should
  */
 
+import type { LogEvent } from "../types.ts";
+
+export interface TransportOptions {
+    enabled?: boolean;
+    level?: string;
+    silent?: boolean;
+}
+
 export class Transport {
-  enabled: any;
-  level: any;
-  silent: any;
+  enabled: boolean;
+  level: string;
+  silent: boolean;
     constructor({
         enabled = true,
         level = "debug",
         silent = false,
-    } = {}) {
+    }: TransportOptions = {}) {
         this.setConfig({
             enabled,
             level,
@@ -33,7 +41,7 @@ export class Transport {
         enabled,
         level,
         silent,
-    }: any = {}) {
+    }: TransportOptions = {}) {
         if (enabled !== undefined) {
             this.enabled = enabled;
         }
@@ -53,7 +61,7 @@ export class Transport {
     // Public API
     // -------------------------------------------------------------------------
 
-    emit(event) {
+    emit(event: LogEvent) {
         if (!this.shouldEmit(event)) {
             return;
         }
@@ -65,7 +73,7 @@ export class Transport {
     // Filtering
     // -------------------------------------------------------------------------
 
-    shouldEmit(event) {
+    shouldEmit(event: LogEvent) {
         if (!this.enabled) {
             return false;
         }
@@ -77,11 +85,11 @@ export class Transport {
         return this.allowsLevel(event.level);
     }
 
-    allowsLevel(level) {
+    allowsLevel(level: string) {
         return this.levelWeight(level) >= this.levelWeight(this.level);
     }
 
-    levelWeight(level) {
+    levelWeight(level: string) {
         switch (level) {
             case "debug":
                 return 10;
@@ -119,7 +127,7 @@ export class Transport {
     // Abstract
     // -------------------------------------------------------------------------
 
-    write(event?: any) {
+    write(event: LogEvent) {
         throw new Error(
             `${this.constructor.name}.write() must be implemented`
         );

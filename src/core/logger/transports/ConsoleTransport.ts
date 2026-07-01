@@ -7,25 +7,32 @@
  */
 
 import { Transport } from "./Transport.ts";
+import type { TransportOptions } from "./Transport.ts";
+import type { LogEvent } from "../types.ts";
 import chalk from "chalk";
 
+export interface ConsoleTransportOptions extends TransportOptions {
+    useColors?: boolean;
+    timestamp?: boolean;
+}
+
 export class ConsoleTransport extends Transport {
-  timestamp: any;
-  useColors: any;
-    constructor(options: any = {}) {
+  timestamp: boolean;
+  useColors: boolean;
+    constructor(options: ConsoleTransportOptions = {}) {
         super(options);
 
         this.useColors = options.useColors ?? true;
         this.timestamp = options.timestamp ?? false;
     }
 
-    write(event?: any) {
+    write(event: LogEvent) {
         const line = this.format(event);
 
         process.stdout.write(line + "\n");
     }
 
-    format(event) {
+    format(event: LogEvent) {
         const parts = [];
 
         // ---------------------------------------------------------------------
@@ -79,11 +86,11 @@ export class ConsoleTransport extends Transport {
         return parts.join(" ");
     }
 
-    formatTime(value) {
+    formatTime(value: string) {
         return new Date(value).toLocaleTimeString();
     }
 
-    formatLevel(level) {
+    formatLevel(level: string) {
         switch (level) {
             case "debug":
                 return chalk.gray("DEBUG");

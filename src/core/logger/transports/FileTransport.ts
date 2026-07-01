@@ -12,14 +12,23 @@
  */
 
 import { Transport } from "./Transport.ts";
+import type { TransportOptions } from "./Transport.ts";
+import type { LogEvent } from "../types.ts";
 import fs from "node:fs";
 import path from "node:path";
 
+export interface FileTransportOptions extends TransportOptions {
+    file?: string;
+    pretty?: boolean;
+    maxFileSize?: number;
+    maxFiles?: number;
+}
+
 export class FileTransport extends Transport {
-  file: any;
-  maxFileSize: any;
-  maxFiles: any;
-  pretty: any;
+  file: string;
+  maxFileSize: number;
+  maxFiles: number;
+  pretty: boolean;
     /**
      * @param {Object} [options]
      * @param {string} [options.file] - Path to the log file. Default: "logs/pyltra.log.jsonl".
@@ -33,7 +42,7 @@ export class FileTransport extends Transport {
         maxFileSize = 1024 * 1024 * 5, // 5MB
         maxFiles = 5,
         ...transportOptions
-    } = {}) {
+    }: FileTransportOptions = {}) {
         super(transportOptions);
 
         this.file = file;
@@ -48,7 +57,7 @@ export class FileTransport extends Transport {
      * Write a log event to the file.
      * @param {Object} event
      */
-    write(event?: any) {
+    write(event: LogEvent) {
         this.rotateIfNeeded();
 
         fs.appendFileSync(
@@ -111,7 +120,7 @@ export class FileTransport extends Transport {
      * @param {Object} event
      * @returns {string}
      */
-    serialize(event) {
+    serialize(event: LogEvent) {
         try {
             return this.pretty
                 ? JSON.stringify(event, null, 2)

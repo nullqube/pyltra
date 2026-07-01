@@ -5,11 +5,14 @@
  * commands to each configured transport.
  */
 
+import type { Transport } from "./transports/Transport.ts";
+import type { LogEvent } from "./types.ts";
+
 export class TransportManager {
-  transports: any;
+  transports: Transport[];
     constructor({
         transports = [],
-    } = {}) {
+    }: { transports?: Transport[] } = {}) {
         this.transports = [];
 
         for (const transport of transports) {
@@ -21,7 +24,7 @@ export class TransportManager {
     // Registration
     // -------------------------------------------------------------------------
 
-    add(transport) {
+    add(transport: Transport) {
         if (!transport) {
             return;
         }
@@ -31,7 +34,7 @@ export class TransportManager {
         return transport;
     }
 
-    remove(transport) {
+    remove(transport: Transport) {
         this.transports = this.transports.filter(
             t => t !== transport
         );
@@ -45,7 +48,7 @@ export class TransportManager {
     // Event Dispatch
     // -------------------------------------------------------------------------
 
-    emit(event) {
+    emit(event: LogEvent) {
         for (const transport of this.transports) {
             try {
                 transport.emit(event);
@@ -60,7 +63,7 @@ export class TransportManager {
     // Error Isolation
     // -------------------------------------------------------------------------
 
-    handleTransportError(error, transport, event) {
+    handleTransportError(error: unknown, transport: Transport, event: LogEvent) {
         // Never allow logging failures
         // to crash runtime execution.
 
