@@ -13,14 +13,17 @@
  * - capability helpers
  */
 
+import type { Runtime } from "./Runtime.ts";
+import type { LogMeta } from "../logger/types.ts";
+
 export class RuntimeAware {
-  createdAt: any;
-  runtime: any;
+  createdAt: number;
+  runtime: Runtime;
     /**
      * @param {Object} options
      * @param {Runtime} options.runtime
      */
-    constructor({ runtime }: any = {}) {
+    constructor({ runtime }: { runtime?: Runtime } = {}) {
         if (!runtime) {
             throw new Error("RuntimeAware requires runtime");
         }
@@ -105,23 +108,23 @@ export class RuntimeAware {
     // Logging Shortcuts
     // -------------------------------------------------------------------------
 
-    debug(...args) {
+    debug(...args: [message: string, meta?: LogMeta]) {
         this.logger?.debug(...args);
     }
 
-    info(...args) {
+    info(...args: [message: string, meta?: LogMeta]) {
         this.logger?.info(...args);
     }
 
-    warn(...args) {
+    warn(...args: [message: string, meta?: LogMeta]) {
         this.logger?.warn(...args);
     }
 
-    error(...args) {
+    error(...args: [message: string, meta?: LogMeta]) {
         this.logger?.error(...args);
     }
 
-    success(...args) {
+    success(...args: [message: string, meta?: LogMeta]) {
         this.logger?.success?.(...args);
     }
 }

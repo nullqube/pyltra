@@ -18,20 +18,38 @@
  */
 
 import { Diagnostics } from "../diagnostics/Diagnostics.ts";
+import type { Logger } from "../logger/Logger.ts";
+import type { Reporter } from "../reporter/Reporter.ts";
+
+export interface RuntimeOptions {
+  environment?: string;
+  command?: string | null;
+  logger?: Logger | null;
+  reporter?: Reporter | null;
+  debug?: boolean;
+  verbose?: boolean;
+  silent?: boolean;
+  watch?: boolean;
+  interactive?: boolean;
+  ci?: boolean;
+  version?: string | null;
+  startTime?: number;
+}
+
 export class Runtime {
-  ci: any;
-  command: any;
-  debug: any;
-  diagnostics: any;
-  environment: any;
-  interactive: any;
-  logger: any;
-  reporter: any;
-  silent: any;
-  startTime: any;
-  verbose: any;
-  version: any;
-  watch: any;
+  ci: boolean;
+  command: string | null;
+  debug: boolean;
+  diagnostics: Diagnostics;
+  environment: string;
+  interactive: boolean;
+  logger: Logger | null;
+  reporter: Reporter | null;
+  silent: boolean;
+  startTime: number;
+  verbose: boolean;
+  version: string | null;
+  watch: boolean;
     /**
      * @param {Object} options
      * @param {string} [options.environment="development"] - Execution environment (development, production, test, staging)
@@ -59,7 +77,7 @@ export class Runtime {
         ci = false,
         version = null,
         startTime = Date.now(),
-    } = {}) {
+    }: RuntimeOptions = {}) {
         this.environment = environment; // "development", "production", "test", "staging"
         this.command = command; // Current command being executed, if applicable
         this.logger = logger;
@@ -76,12 +94,12 @@ export class Runtime {
         this.diagnostics = new Diagnostics();
     }
 
-    setLogger(logger) {
+    setLogger(logger: Logger) {
         this.logger = logger;
         return this;
     }
 
-    setReporter(reporter) {
+    setReporter(reporter: Reporter) {
         this.reporter = reporter;
         return this;
     }
@@ -173,7 +191,7 @@ export class Runtime {
     // Factory Helpers
     // ---------------------------------------------------------------------------
 
-    static fromCLI(options: any = {}) {
+    static fromCLI(options: RuntimeOptions = {}) {
         return new Runtime({
             environment: options.environment,
             command: options.command,
