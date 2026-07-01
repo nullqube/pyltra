@@ -116,7 +116,8 @@ export class PyltraEngine extends RuntimeAware {
             cwd: this.options.cwd,
             config,
             paths,
-            data: {}
+            // Placeholder; the real DataLoader is attached via setData() below.
+            data: {} as DataLoader
         });
 
         this.dataLoader = new DataLoader({
