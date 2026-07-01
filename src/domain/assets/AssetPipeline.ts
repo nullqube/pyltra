@@ -24,10 +24,13 @@ import { optimize } from 'svgo';
 
 import { RuntimeAware } from '../../core/runtime/RuntimeAware.ts';
 import { BuildArtifact } from '../../core/diagnostics/BuildArtifact.ts';
-export class AssetPipeline extends RuntimeAware {
-  project: any;
+import type { Runtime } from '../../core/runtime/Runtime.ts';
+import type { Project } from '../../project/Project.ts';
 
-    constructor(runtime, project) {
+export class AssetPipeline extends RuntimeAware {
+  project: Project;
+
+    constructor(runtime: Runtime, project: Project) {
         super({ runtime });
         this.project = project;
     }
@@ -122,7 +125,7 @@ export class AssetPipeline extends RuntimeAware {
         }));
     }
 
-    #getCopiedAssetType(file) {
+    #getCopiedAssetType(file: string): string {
         const extension = path.extname(file).toLowerCase();
 
         if (extension === '.css') return 'style';
