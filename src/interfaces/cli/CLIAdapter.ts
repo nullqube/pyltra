@@ -1,21 +1,42 @@
 import { Command } from "commander";
 import prompts from 'prompts';
 
+/** Runtime/execution flags shared across commands. */
+export interface CommandFlags {
+    env?: string;
+    debug?: boolean;
+    verbose?: boolean;
+    silent?: boolean;
+    ci?: boolean;
+    watch?: boolean;
+}
+
+/** Transport-agnostic command input consumed by the Engine. */
+export interface CommandInput {
+    command: string;
+    args: Record<string, unknown>;
+    options: Record<string, unknown>;
+    flags: CommandFlags;
+    raw: string[];
+}
+
+export type CommandHandler = (input: CommandInput) => Promise<void> | void;
+
 // Only parse and normalize the cli input here, the actual command handling logic should be implemented in the engine
 // 1. Parse the command and options using commander
 // 2. Normalize the input into a consistent format
 // 3. Pass the normalized input to the engine for handling
 export class CLIAdapter {
-  name: any;
-  program: any;
-  version: any;
-    constructor({ name = "pyltra", version = "0.0.0" } = {}) {
+  name: string;
+  program: Command;
+  version: string;
+    constructor({ name = "pyltra", version = "0.0.0" }: { name?: string; version?: string } = {}) {
         this.name = name;
         this.version = version;
         this.program = new Command();
     }
 
-    async run(handler) {
+    async run(handler: CommandHandler) {
         this.program
             .name(this.name)
             .version(this.version)
@@ -34,7 +55,7 @@ export class CLIAdapter {
         await this.program.parseAsync(process.argv);
     }
 
-    registerBuild(handler) {
+    registerBuild(handler: CommandHandler) {
         this.program
             .command("build")
             .description("Build the project")
@@ -48,8 +69,9 @@ export class CLIAdapter {
             .option("--item <slug>", "Build a specific collection item")
             .option("--watch", "Watch files", false)
             .option("--report-size","Show the report size of the output.", false)
-            .option("--report-depth <depth>","The report size depth.", 1)
-            .action(async (options, command) => {
+            // commander types the option default as string; the numeric default is preserved at runtime.
+            .option("--report-depth <depth>","The report size depth.", 1 as unknown as string)
+            .action(async (options: Record<string, unknown>, command: Command) => {
                 const { reportSize, reportDepth, ...restOptions } = options;
                 await handler(this.normalize(command, {
                     command: "build",
@@ -58,21 +80,22 @@ export class CLIAdapter {
                         ...restOptions,
                         report: {
                             size: reportSize,
-                            depth: Number.parseInt(reportDepth, 10) || undefined
+                            // reportDepth comes from dynamic CLI options; it is a string/number.
+                            depth: Number.parseInt(reportDepth as string, 10) || undefined
                         }
                     }
                 }));
             });
     }
 
-    registerServe(handler) {
+    registerServe(handler: CommandHandler) {
         this.program
             .command("serve")
             .description("Start development server")
             .option("--host <host>", "Dev server host", "localhost")
             .option("--port <port>", "Dev server port", parseInteger, 3000)
             .option("--watch", "Watch files", true)
-            .action(async (options, command) => {
+            .action(async (options: Record<string, unknown>, command: Command) => {
                 await handler(this.normalize(command, {
                     command: "serve",
                     args: { host: options.host, port: options.port },
@@ -81,12 +104,12 @@ export class CLIAdapter {
             });
     }
 
-    registerInit(handler) {
+    registerInit(handler: CommandHandler) {
         this.program
             .command("init [name]")
             .option('-t, --template <template>', 'Template to use', 'basic')
             .description("Initialize a new Pyltra project")
-            .action(async (name, options, command) => {
+            .action(async (name: string | undefined, options: Record<string, unknown>, command: Command) => {
                 const _name = name ?? options.name ?? null;
                 const _template = options.template ?? null;
                 const questions = [];
@@ -95,7 +118,7 @@ export class CLIAdapter {
                         type: 'text',
                         name: 'name',
                         message: 'Enter the project name:',
-                        validate: v => v.trim().length ? true : 'Project name is required'
+                        validate: (v: string) => v.trim().length ? true : 'Project name is required'
                     });
                 }
                 if(!_template) {
@@ -142,11 +165,11 @@ export class CLIAdapter {
             });
     }
 
-    registerAdd(handler) {
+    registerAdd(handler: CommandHandler) {
         this.program
             .command("add <type> <name>")
             .description("Add project resource")
-            .action(async (type, name, options, command) => {
+            .action(async (type: string, name: string, options: Record<string, unknown>, command: Command) => {
                 await handler(this.normalize(command, {
                     command: "add",
                     args: { type, name },
@@ -235,9 +258,9 @@ export class CLIAdapter {
      * @param {Object} input Normalized command parts supplied by the adapter.
      * @returns {Object} Internal command input consumed by the Engine.
      */
-    normalize(commanderCommand, input) {
+    normalize(commanderCommand: Command, input: { command: string; args?: Record<string, unknown>; options?: Record<string, unknown> }): CommandInput {
         const globalOpts = this.program.opts();
-        const res = {
+        const res: CommandInput = {
             command: input.command,
             args: { ...input.args },        // required domain inputs
             options: input.options ?? {},   // command features (optional)
@@ -251,7 +274,7 @@ export class CLIAdapter {
     }
 }
 
-function parseInteger(value) {
+function parseInteger(value: string) {
     const parsed = Number.parseInt(value, 10);
 
     if (Number.isNaN(parsed)) {
