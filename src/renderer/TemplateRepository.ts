@@ -7,25 +7,36 @@
  * the project directory.
  */
 import path from 'path';
-function stripExtension(fileName) {
+import type { Project } from '../project/Project.ts';
+import type { FilesystemAdapter } from '../data/adapters/FilesystemAdapter.ts';
+
+export interface PageTemplate {
+    name: string;
+    fileName: string;
+    templatePath: string;
+}
+
+function stripExtension(fileName: string): string {
     return fileName.replace(/\.[^.]+$/, '');
 }
 
-function normalizeTemplatePath(value) {
+function normalizeTemplatePath(value: string): string {
     return value.replaceAll(path.sep, '/');
 }
 
 export class TemplateRepository {
-  fs: any;
-  project: any;
-    constructor(project, fsAdapter) {
+  fs: FilesystemAdapter;
+  project: Project;
+    constructor(project: Project, fsAdapter: FilesystemAdapter) {
         this.project = project;
         this.fs = fsAdapter;
     }
 
     async getPageTemplates() {
         const paths = this.project.getPaths();
-        const templatePattern = paths.get('templates');
+        // ProjectPaths.get() returns unknown (dynamic path bag); the templates
+        // pattern is always a glob string.
+        const templatePattern = paths.get('templates') as string;
 
         const entries = await this.fs.glob(templatePattern, {
             onlyFiles: true,
@@ -37,7 +48,7 @@ export class TemplateRepository {
             .map(templatePath => this.createPageTemplate(templatePath));
     }
 
-    createPageTemplate(templatePath) {
+    createPageTemplate(templatePath: string): PageTemplate {
         const normalizedPath = normalizeTemplatePath(templatePath);
         const fileName = path.basename(normalizedPath);
         const name = stripExtension(fileName);

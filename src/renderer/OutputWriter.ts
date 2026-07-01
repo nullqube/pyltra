@@ -27,16 +27,18 @@
 
 
 import path from 'path';
+import type { Project } from '../project/Project.ts';
+import type { FilesystemAdapter } from '../data/adapters/FilesystemAdapter.ts';
 
 export class OutputWriter {
-  fs: any;
-  project: any;
-    constructor(project, fsAdapter) {
+  fs: FilesystemAdapter;
+  project: Project;
+    constructor(project: Project, fsAdapter: FilesystemAdapter) {
         this.project = project;
         this.fs = fsAdapter;
     }
 
-    async writeBundle(fileName, content) {
+    async writeBundle(fileName: string, content: string) {
         const outputPath = path.join(
             this.project.getDistPath(),
             fileName
@@ -45,7 +47,7 @@ export class OutputWriter {
         await this.fs.writeText(outputPath, content);
     }
     
-    async writePage(language, pageName, content) {
+    async writePage(language: string, pageName: string, content: string) {
         const outputPath = this.getPageOutputPath(language, pageName);
 
         await this.fs.writeText(outputPath, content);
@@ -53,7 +55,7 @@ export class OutputWriter {
         return outputPath;
     }
 
-    getPageOutputPath(language, pageName) {
+    getPageOutputPath(language: string, pageName: string) {
         const fileName = `${pageName}.html`;
 
         return path.join(
@@ -63,7 +65,7 @@ export class OutputWriter {
         );
     }
 
-    async writeCollectionItem(language, collectionName, itemSlug, content) {
+    async writeCollectionItem(language: string, collectionName: string, itemSlug: string, content: string) {
         const outputPath = path.join(
             this.project.getDistPath(),
             language,
