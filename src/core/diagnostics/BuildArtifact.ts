@@ -6,18 +6,26 @@
  * @license MIT
  */
 
+export interface BuildArtifactOptions {
+    type: string;
+    lang?: string;
+    name: string;
+    size: number;
+    createdBy?: string;
+}
+
 export class BuildArtifact {
-  createdBy: any;
-  name: any;
-  size: any;
-  type: any;
+  createdBy?: string;
+  name: string;
+  size: number;
+  type: string;
     constructor({
         type,
         lang,
         name,
         size,
         createdBy
-    }) {
+    }: BuildArtifactOptions) {
 
         if (!type)
             throw new Error('type is required');

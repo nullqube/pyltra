@@ -8,12 +8,12 @@
 
 import {BuildArtifact} from './BuildArtifact.ts';
 export class Diagnostics {
-  artifacts: any[];
+  artifacts: BuildArtifact[];
     constructor() {
         this.artifacts = [];
     }
 
-    recordArtifact(artifact) {
+    recordArtifact(artifact: BuildArtifact) {
         if (!(artifact instanceof BuildArtifact))
             throw new Error('artifact must be an instance of BuildArtifact');
 
@@ -53,7 +53,7 @@ export class Diagnostics {
                 acc[artifact.type].count += 1;
                 acc[artifact.type].totalSize += artifact.size;
                 return acc;
-            }, {})
+            }, {} as Record<string, { count: number; totalSize: number }>)
         };
     }
 }
