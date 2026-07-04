@@ -1,18 +1,22 @@
 {
     "name": "pyltra",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "description": "A static site generator for multilingual projects.",
-    "main": "src/index.mjs",
     "type": "module",
     "scripts": {
-        "build": "node ./bin/cli.ts build",
-        "start": "node ./bin/cli.ts serve",
+        "dev": "tsx watch ./src/bin/cli.ts",
+        "build": "tsx ./src/bin/cli.ts build",
+        "start": "tsx ./src/bin/cli.ts serve",
         "typecheck": "tsc --noEmit",
         "bundle": "node ./scripts/build.mjs",
         "prepublishOnly": "node ./scripts/build.mjs"
     },
     "bin": {
         "pyltra": "./dist/bin/cli.js"
+    },
+    "exports": {
+        ".": "./dist/index.js",
+        "./types": "./dist/types/index.d.ts"
     },
     "files": [
         "dist",
@@ -29,8 +33,6 @@
         "commander": "^13.1.0",
         "cssnano": "^7.1.2",
         "date-fns": "^4.1.0",
-        "esbuild": "^0.27.3",
-        "fast-glob": "^3.3.3",
         "fs-extra": "^11.3.4",
         "gray-matter": "^4.0.3",
         "html-minifier": "^4.0.0",
@@ -67,6 +69,9 @@
     "devDependencies": {
         "@types/node": "^26.0.1",
         "nodemon": "^3.1.14",
-        "typescript": "^6.0.3"
+        "tsx": "^4.23.0",
+        "typescript": "^6.0.3",
+        "esbuild": "^0.27.3",
+        "fast-glob": "^3.3.3"
     }
 }
