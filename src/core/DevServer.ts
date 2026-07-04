@@ -91,7 +91,8 @@ export class DevServer extends RuntimeAware{
                 try {
                     await this.rebuild(reloadMode);
                 } catch (err) {
-                    this.error(`Dev rebuild failed: ${err.message}`);
+                    const message = err instanceof Error ? err.message : String(err);
+                    this.error(`Dev rebuild failed: ${message}`);
                 }
             }
         } finally {

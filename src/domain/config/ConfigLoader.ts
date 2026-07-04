@@ -97,7 +97,8 @@ export class ConfigLoader extends RuntimeAware {
         try {
             raw = yaml.load(fs.readFileSync(this.configPath, 'utf8'));
         } catch (e) {
-            throw new Error(`Failed to parse ${this.configFile}: ${e.message}`);
+            const message = e instanceof Error ? e.message : String(e);
+            throw new Error(`Failed to parse ${this.configFile}: ${message}`);
         }
 
         assertPlainObject(raw, this.configFile);

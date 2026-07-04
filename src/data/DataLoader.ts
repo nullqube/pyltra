@@ -114,7 +114,7 @@ export class DataLoader extends RuntimeAware {
             if( this.shouldLogVerbose ) {
                 this.debug(`Using cached data for "${lang}"`);
             }
-            return clonePlainValue(this.cache.get(lang));
+            return clonePlainValue(this.cache.get(lang) as DataRecord);
         }
 
         if( this.shouldLogVerbose ) {
@@ -226,7 +226,7 @@ export class DataLoader extends RuntimeAware {
         const pageData = this.load(lang);
         // Dynamic collection entry; view it as collection data with an items list.
         const rawCollection = (pageData[collectionName] as CollectionData) || { items: [] };
-        const rawItem = rawCollection.items.find(candidate => candidate.slug === slug);
+        const rawItem = (rawCollection.items || []).find(candidate => candidate.slug === slug);
 
         if (!rawItem) {
             return {

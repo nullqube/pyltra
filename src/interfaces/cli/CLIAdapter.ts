@@ -22,6 +22,15 @@ export interface CommandInput {
 
 export type CommandHandler = (input: CommandInput) => Promise<void> | void;
 
+type InitQuestion = {
+    type: string;
+    name: string;
+    message: string;
+    choices?: Array<{ title: string; value: string }>;
+    initial?: number;
+    validate?: (value: string) => true | string;
+};
+
 // Only parse and normalize the cli input here, the actual command handling logic should be implemented in the engine
 // 1. Parse the command and options using commander
 // 2. Normalize the input into a consistent format
@@ -112,7 +121,7 @@ export class CLIAdapter {
             .action(async (name: string | undefined, options: Record<string, unknown>, command: Command) => {
                 const _name = name ?? options.name ?? null;
                 const _template = options.template ?? null;
-                const questions = [];
+                const questions: InitQuestion[] = [];
                 if (!_name) {
                     questions.push({
                         type: 'text',

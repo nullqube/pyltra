@@ -33,7 +33,7 @@ export class ConsoleTransport extends Transport {
     }
 
     format(event: LogEvent) {
-        const parts = [];
+        const parts: string[] = [];
 
         // ---------------------------------------------------------------------
         // Timestamp

@@ -67,7 +67,7 @@ await adapter.run(async (commandInput) => {
     try {
         await engine.run(commandInput);
     } catch (err) {
-        logger.error(err.message);
+        logger.error(err instanceof Error ? err.message : String(err));
         if (commandInput.flags.debug) console.error(err);
         process.exit(1);
     }

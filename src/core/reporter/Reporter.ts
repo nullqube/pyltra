@@ -76,7 +76,7 @@ export class Reporter extends RuntimeAware {
             return result;
 
         } catch (error) {
-            task.fail(error.message);
+            task.fail(error instanceof Error ? error.message : String(error));
 
             throw error;
         }

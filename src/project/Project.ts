@@ -41,7 +41,6 @@ export interface ProjectOptions {
 }
 
 export class Project {
-  _assertLoaded?: () => void;
   _metadata: ProjectMetadata;
   config: SiteConfig;
   cwd: string;
@@ -224,5 +223,11 @@ export class Project {
             title: site.title || 'Pyltra Site',
             languageCodes: this.config.languages.map(language => language.code)
         };
+    }
+
+    _assertLoaded() {
+        if (!this.config || !this.data || !this.paths) {
+            throw new Error('Project is not fully loaded.');
+        }
     }
 }

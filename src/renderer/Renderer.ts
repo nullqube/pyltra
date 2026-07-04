@@ -38,6 +38,11 @@ const HTML_MINIFY_OPTIONS = {
     minifyCSS: true,
     minifyJS: true
 };
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 export interface RendererDependencies {
     project?: Project;
     dataLoader?: DataLoader;
@@ -67,6 +72,10 @@ export class Renderer extends RuntimeAware {
         const environment = hasProjectOption ? deps.environment : options.environment;
 
         super({ runtime });
+        if (!project) {
+            throw new Error('Renderer requires a loaded Project instance.');
+        }
+
         this.project = project;
         this.dataLoader = dataLoader ?? project.getData();
         this.env = environment || createNunjucksEnvironment(project);
@@ -113,6 +122,9 @@ export class Renderer extends RuntimeAware {
             }
 
             const context = result.context;
+            if (!context) {
+                throw new Error(`Renderer received an empty context for page "${template.name}".`);
+            }
             this.info(`Building ${lang}/${template.name}`);
             let htmlContent = this._renderTemplate(template.fileName, context);
             htmlContent = this.#maybeMinify(htmlContent);
@@ -166,6 +178,9 @@ export class Renderer extends RuntimeAware {
                 }
 
                 const context = result.context;
+                if (!context) {
+                    throw new Error(`Renderer received an empty context for "${collectionName}/${slug}".`);
+                }
                 this.info(`Building ${lang}/${collectionName}/${slug}`);
                 let htmlContent = this._renderTemplate(itemTemplate, context);
                 htmlContent = this.#maybeMinify(htmlContent);
@@ -193,7 +208,6 @@ export class Renderer extends RuntimeAware {
             content = this.#maybeMinify(content);
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: 'bundle',
-                lang: null,
                 name: fileName,
                 size: Buffer.byteLength(content, 'utf-8'),
                 createdBy: 'Renderer'
@@ -207,7 +221,7 @@ export class Renderer extends RuntimeAware {
             return this.env.render(templateName, context);
         } catch (err) {
             throw new Error(
-                `Renderer failed to render template "${templateName}": ${err.message}`,
+                `Renderer failed to render template "${templateName}": ${getErrorMessage(err)}`,
                 { cause: err }
             );
         }

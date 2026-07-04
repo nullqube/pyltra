@@ -42,12 +42,12 @@ export interface EngineOptions {
 export class PyltraEngine extends RuntimeAware {
   _booted: boolean;
   _loaded: boolean;
-  buildManager: BuildManager;
-  configLoader: ConfigLoader;
-  dataLoader: DataLoader;
-  devServer: DevServer;
+  buildManager: BuildManager | null;
+  configLoader: ConfigLoader | null;
+  dataLoader: DataLoader | null;
+  devServer: DevServer | null;
   options: { cwd: string; configFile: string };
-  project: Project;
+  project: Project | null;
 
     /**
      * @param {Object} options
@@ -73,6 +73,22 @@ export class PyltraEngine extends RuntimeAware {
 
         this._booted = false;
         this._loaded = false;
+    }
+
+    #assertBooted(): asserts this is this & { configLoader: ConfigLoader } {
+        if (!this.configLoader) {
+            throw new Error('Engine not booted. Call boot() first.');
+        }
+    }
+
+    #assertLoaded(): asserts this is this & {
+        project: Project;
+        buildManager: BuildManager;
+        devServer: DevServer;
+    } {
+        if (!this.project || !this.buildManager || !this.devServer) {
+            throw new Error('Project not loaded. Call load() first.');
+        }
     }
 
     async run(input: CommandInput) {
@@ -117,6 +133,7 @@ export class PyltraEngine extends RuntimeAware {
     async load() {
         await this.boot();
         if(this._loaded) return;
+        this.#assertBooted();
 
         const config = this.configLoader.load();
         const paths = this.configLoader.getPaths();
@@ -160,6 +177,7 @@ export class PyltraEngine extends RuntimeAware {
      */
     async build(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
+        this.#assertLoaded();
         // CLI options are dynamic; hand them to the typed build as BuildOptions.
         await this.buildManager.build(options as unknown as BuildOptions);
     }
@@ -169,6 +187,7 @@ export class PyltraEngine extends RuntimeAware {
      */
     async validate(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
+        this.#assertLoaded();
         await this.buildManager.validate();
     }
 
@@ -177,6 +196,7 @@ export class PyltraEngine extends RuntimeAware {
      */
     async serve(args?: Record<string, unknown>, options?: Record<string, unknown>) {
         await this.load();
+        this.#assertLoaded();
         await this.devServer.start();
     }
 
@@ -189,6 +209,7 @@ export class PyltraEngine extends RuntimeAware {
      */
     async clean(args: Record<string, unknown>, options: Record<string, unknown>) {
         await this.load();
+        this.#assertLoaded();
         await this.buildManager.clean();
     }
 }

@@ -82,7 +82,6 @@ export class AssetPipeline extends RuntimeAware {
 
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: 'style',
-                lang: null,
                 name: file,
                 size: Buffer.byteLength(processed.css, 'utf-8'),
                 createdBy: 'AssetPipeline'
@@ -114,7 +113,6 @@ export class AssetPipeline extends RuntimeAware {
 
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: this.#getCopiedAssetType(file),
-                lang: null,
                 name: file,
                 size: fs.statSync(sourcePath).size,
                 createdBy: 'AssetPipeline'
@@ -160,7 +158,6 @@ export class AssetPipeline extends RuntimeAware {
 
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: 'style',
-                lang: null,
                 name: file,
                 size: Buffer.byteLength(result.css, 'utf-8'),
                 createdBy: 'AssetPipeline'
@@ -231,7 +228,6 @@ export class AssetPipeline extends RuntimeAware {
 
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: 'script',
-                lang: null,
                 name: file,
                 size: Buffer.byteLength(result.code, 'utf-8'),
                 createdBy: 'AssetPipeline'
@@ -299,7 +295,6 @@ export class AssetPipeline extends RuntimeAware {
             }
             this.diagnostics.recordArtifact(new BuildArtifact({
                 type: 'image',
-                lang: null,
                 name: file,
                 size: Buffer.byteLength(result.data, 'utf-8'),
                 createdBy: 'AssetPipeline'

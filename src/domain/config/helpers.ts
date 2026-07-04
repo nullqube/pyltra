@@ -26,7 +26,7 @@ interface RawConfigShape {
  */
 export function validateConfig(input: unknown) {
     const config = input as RawConfigShape;
-    const errors = [];
+    const errors: string[] = [];
 
     if (!config || typeof config !== 'object') {
         throw new Error('config.yaml must be a YAML object, got: ' + typeof config);
