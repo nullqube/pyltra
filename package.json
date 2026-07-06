@@ -1,5 +1,7 @@
 {
     "name": "pyltra",
+    "author": "nullqube",
+    "license": "MIT",
     "version": "2.0.0",
     "description": "A static site generator for multilingual projects.",
     "type": "module",
@@ -9,7 +11,9 @@
         "start": "tsx ./src/bin/cli.ts serve",
         "typecheck": "tsc --noEmit",
         "bundle": "node ./scripts/build.mjs",
-        "prepublishOnly": "node ./scripts/build.mjs"
+        "prepublishOnly": "node ./scripts/build.mjs",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "bin": {
         "pyltra": "./dist/bin/cli.js"
@@ -55,8 +59,6 @@
         "static-site-generator",
         "build-tool"
     ],
-    "author": "nullqube",
-    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "https://github.com/nullqube/pyltra.git"
