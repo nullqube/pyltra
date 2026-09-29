@@ -8,7 +8,7 @@
  *   3. Copy runtime assets (templates/, trimmed package.json).
  */
 import { execFileSync } from 'node:child_process';
-import { rmSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
+import { rmSync, cpSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { glob } from 'node:fs/promises';
@@ -74,6 +74,10 @@ await esbuild.build({
   banner: { js: '#!/usr/bin/env node' },
   ...ESBUILD_BASE,
 });
+
+// npm links package binaries directly on Unix, so the generated CLI target
+// must retain an executable mode after tsc/esbuild recreate it.
+chmodSync(entryFile, 0o755);
 
 console.log(`  minified ${allFiles.length} files`);
 
