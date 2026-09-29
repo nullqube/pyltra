@@ -36,7 +36,8 @@ function normalizeTemplateDirectory(project: Project): string {
  */
 export function createNunjucksEnvironment(project: Project): Environment {
     const env = nunjucks.configure(normalizeTemplateDirectory(project), {
-        autoescape: true
+        autoescape: true,
+        noCache: true
     });
 
     registerTemplateFilters(env);
