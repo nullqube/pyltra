@@ -21,6 +21,9 @@ export class DevServer extends RuntimeAware{
   pendingReloadMode: 'styles' | 'full' | null;
   project: Project;
   server: browserSync.BrowserSyncInstance;
+  private readonly rebuildDebounceMs = 300;
+  private rebuildTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastChangeAt = 0;
 
     constructor(runtime: Runtime, project: Project, buildManager: BuildManager) {
         super({ runtime });
@@ -68,10 +71,18 @@ export class DevServer extends RuntimeAware{
         }
 
         this.mergeReloadMode(nextReloadMode);
+        this.lastChangeAt = Date.now();
+        this.scheduleRebuild();
+    }
 
-        if (this.isRebuilding) return;
+    private scheduleRebuild() {
+        if (this.rebuildTimer !== null) clearTimeout(this.rebuildTimer);
 
-        void this.flushRebuilds();
+        const delay = Math.max(0, this.rebuildDebounceMs - (Date.now() - this.lastChangeAt));
+        this.rebuildTimer = setTimeout(() => {
+            this.rebuildTimer = null;
+            void this.flushRebuilds();
+        }, delay);
     }
 
     mergeReloadMode(reloadMode: 'styles' | 'full') {
@@ -81,22 +92,20 @@ export class DevServer extends RuntimeAware{
     }
 
     async flushRebuilds() {
+        if (this.isRebuilding || !this.pendingReloadMode) return;
+
         this.isRebuilding = true;
+        const reloadMode = this.pendingReloadMode;
+        this.pendingReloadMode = null;
 
         try {
-            while (this.pendingReloadMode) {
-                const reloadMode = this.pendingReloadMode;
-                this.pendingReloadMode = null;
-
-                try {
-                    await this.rebuild(reloadMode);
-                } catch (err) {
-                    const message = err instanceof Error ? err.message : String(err);
-                    this.error(`Dev rebuild failed: ${message}`);
-                }
-            }
+            await this.rebuild(reloadMode);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.error(`Dev rebuild failed: ${message}`);
         } finally {
             this.isRebuilding = false;
+            if (this.pendingReloadMode) this.scheduleRebuild();
         }
     }
 
