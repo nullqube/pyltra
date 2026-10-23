@@ -16,15 +16,10 @@
         "test:watch": "vitest"
     },
     "bin": {
-        "pyltra": "./dist/bin/cli.js"
-    },
-    "exports": {
-        ".": "./dist/index.js",
-        "./types": "./dist/types/index.d.ts"
+        "pyltra": "./dist/cli.js"
     },
     "files": [
         "dist",
-        "templates",
         "README.md",
         "LICENSE",
         "CHANGELOG.md"
@@ -37,6 +32,8 @@
         "commander": "^13.1.0",
         "cssnano": "^7.1.2",
         "date-fns": "^4.1.0",
+        "esbuild": "^0.27.3",
+        "fast-glob": "^3.3.3",
         "gray-matter": "^4.0.3",
         "html-minifier": "^4.0.0",
         "js-yaml": "^4.1.0",
@@ -69,8 +66,6 @@
     "homepage": "https://github.com/nullqube/pyltra#readme",
     "devDependencies": {
         "@types/node": "^26.1.0",
-        "esbuild": "^0.27.3",
-        "fast-glob": "^3.3.3",
         "fs-extra": "^11.3.6",
         "nodemon": "^3.1.14",
         "tsx": "^4.23.0",

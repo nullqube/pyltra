@@ -24,7 +24,11 @@ export class ProjectScaffolder {
         // const { projectName, projectDescription, createReadme, createGitignore } = responses;
         const __filename   = fileURLToPath(import.meta.url);
         const __dirname    = path.dirname(__filename);
-        const TEMPLATE_DIR = path.resolve(__dirname, '../../../templates');
+        // Bundled CLI: dist/templates. Source execution: repository templates.
+        const bundledTemplates = path.join(__dirname, 'templates');
+        const TEMPLATE_DIR = fs.existsSync(bundledTemplates)
+            ? bundledTemplates
+            : path.resolve(__dirname, '../../../templates');
         const availableTemplates = fs.readdirSync(TEMPLATE_DIR)
             .filter(name => fs.statSync(path.join(TEMPLATE_DIR, name)).isDirectory());
         let { template = 'empty' } = options || {};
