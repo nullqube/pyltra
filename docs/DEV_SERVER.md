@@ -21,6 +21,12 @@ The dev server is responsible for:
 - triggering rebuilds
 - supporting live reload
 
+File changes are debounced for 300 ms after the last event. Rebuilds run one at
+a time; changes received during a build are batched into a follow-up rebuild
+once the current build finishes and the debounce delay has elapsed. A batch
+containing any non-style file triggers a full browser reload; CSS/SCSS-only
+batches reload styles.
+
 ---
 
 ## 3. Boundaries

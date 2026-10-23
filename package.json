@@ -1,16 +1,29 @@
 {
     "name": "pyltra",
-    "version": "1.1.0",
+    "author": "nullqube",
+    "license": "MIT",
+    "version": "2.0.1",
     "description": "A static site generator for multilingual projects.",
-    "main": "src/index.mjs",
     "type": "module",
     "scripts": {
-        "build": "node ./bin/cli.js build",
-        "start": "node ./bin/cli.js serve"
+        "dev": "tsx watch ./bin/cli.ts",
+        "build": "tsx ./bin/cli.ts build",
+        "start": "tsx ./bin/cli.ts serve",
+        "typecheck": "tsc --noEmit",
+        "bundle": "node ./scripts/build.mjs",
+        "prepublishOnly": "node ./scripts/build.mjs",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "bin": {
-        "pyltra": "./bin/cli.js"
+        "pyltra": "./dist/cli.js"
     },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md"
+    ],
     "dependencies": {
         "autoprefixer": "^10.4.27",
         "browser-sync": "^3.0.2",
@@ -21,7 +34,6 @@
         "date-fns": "^4.1.0",
         "esbuild": "^0.27.3",
         "fast-glob": "^3.3.3",
-        "fs-extra": "^11.3.4",
         "gray-matter": "^4.0.3",
         "html-minifier": "^4.0.0",
         "js-yaml": "^4.1.0",
@@ -44,8 +56,6 @@
         "static-site-generator",
         "build-tool"
     ],
-    "author": "nullqube",
-    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "https://github.com/nullqube/pyltra.git"
@@ -55,6 +65,11 @@
     },
     "homepage": "https://github.com/nullqube/pyltra#readme",
     "devDependencies": {
-        "nodemon": "^3.1.14"
+        "@types/node": "^26.1.0",
+        "fs-extra": "^11.3.6",
+        "nodemon": "^3.1.14",
+        "tsx": "^4.23.0",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.9"
     }
 }

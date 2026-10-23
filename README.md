@@ -133,6 +133,22 @@ Alternatively, you can clone the source code from GitHub:
 git clone https://github.com/nullqube/pyltra.git
 ```
 
+## Building the Pyltra package
+
+Run `npm ci` followed by `npm run bundle` to type-check and bundle the CLI:
+
+```text
+dist/
+├── cli.js
+└── templates/
+```
+
+Pyltra's own code is bundled into one minified ESM file. Runtime dependencies,
+including native packages such as `sharp`, are installed separately by npm.
+`npm pack` packages the CLI and starter templates; templates are included only
+once. The npm package exposes the `pyltra` command, without a JavaScript library
+entry point. To check the local bundle, run `node dist/cli.js --help`.
+
 ## Contributing
 
 Feel free to open issues or submit pull requests on [GitHub](https://github.com/nullqube/pyltra).

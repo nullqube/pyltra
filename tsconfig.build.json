@@ -1,0 +1,19 @@
+{
+  // esbuild emits the single CLI bundle; tsc only checks the build sources.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "bin/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "templates",
+    "tests",
+    "src/index.mjs",
+    "src/tasks",
+    "src/utils/validate.mjs",
+    "src/utils/sizeReporter.ts",
+    "src/utils/files.ts"
+  ]
+}

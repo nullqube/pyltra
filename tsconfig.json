@@ -1,0 +1,45 @@
+{
+  // Type-checking only (no emit). The app runs either directly via
+  // Node 24's native TypeScript support (`node bin/cli.ts`) or from
+  // the bundled output in `dist/` produced by `npm run bundle`
+  // (see tsconfig.build.json).
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+
+    // Keep .ts extensions in source imports — required pair with noEmit.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    // Strictness — tightened from baseline; add more incrementally.
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": true,   // catches real null bugs, low refactor cost
+    "useUnknownInCatchVariables": true, // pairs well with strictNullChecks
+
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true     // guards against esbuild per-file incompatibilities
+  },
+  "include": ["src/**/*.ts", "bin/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "templates",
+    "tests",
+    // Dead legacy gulp subsystem (imports a module that does not exist).
+    "src/index.mjs",
+    "src/tasks",
+    "src/utils/validate.mjs",
+    // Depends on optional `gulp-size` package (not installed).
+    "src/utils/sizeReporter.ts"
+  ]
+}

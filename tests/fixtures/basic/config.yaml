@@ -1,0 +1,7 @@
+languages:
+  - code: en
+    name: English
+
+pages:
+  index:
+    file: "${lang}/index.yaml"
