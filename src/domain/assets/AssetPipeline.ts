@@ -255,17 +255,26 @@ export class AssetPipeline extends RuntimeAware {
             let pipeline = sharp(sourcePath);
 
             if (extension === '.jpg' || extension === '.jpeg') {
-                pipeline = pipeline.jpeg({ quality: 75, progressive: true });
+                pipeline = pipeline.jpeg({ quality: 75, progressive: true, mozjpeg: true });
             } else if (extension === '.png') {
-                pipeline = pipeline.png({ compressionLevel: 9, palette: true });
+                pipeline = pipeline.png({ compressionLevel: 9, palette: true, effort: 10, adaptiveFiltering: true });
             } else if (extension === '.webp') {
-                pipeline = pipeline.webp({ quality: 75 });
+                pipeline = pipeline.webp({ quality: 75, effort: 6, smartSubsample: true });
             } else if (extension === '.avif') {
-                pipeline = pipeline.avif({ quality: 50 });
+                pipeline = pipeline.avif({ quality: 50, effort: 6 });
             }
 
+            let optimized = await pipeline.toBuffer();
+            if (extension === '.webp') {
+                // Lossless compression often beats lossy encoding for graphics and text.
+                const lossless = await sharp(sourcePath).webp({ lossless: true, effort: 6 }).toBuffer();
+                if (lossless.length < optimized.length) optimized = lossless;
+            }
+            const original = fs.readFileSync(sourcePath);
+
+            // Re-encoding can enlarge already optimized images, especially line art.
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-            await pipeline.toFile(outputPath);
+            fs.writeFileSync(outputPath, optimized.length < original.length ? optimized : original);
         }));
     }
 
