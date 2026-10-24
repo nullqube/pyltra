@@ -38,7 +38,7 @@ await adapter.run(async (commandInput) => {
         verbose: commandInput.flags.verbose,
         silent: commandInput.flags.silent,
         environment: commandInput.flags.env,
-        prefix: "pyltra",
+        // prefix: "pyltra",
         transports: [
             new ConsoleTransport({
                 level: "debug",
